@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from darknet.config import get_parser
 from data.dataset.imagenet import ImageNetDataset
-from data.transform as transforms
+import data.transform as transforms
 from yolov3.modeling.backbone.build import build_backbone
 from yolov3.layers import ShapeSpec
 from yolov3.configs.default import get_default_config
@@ -23,7 +23,7 @@ def data_loader(data_root, cfg):
     )
     train_dataset = ImageNetDataset(data_root=data_root, transform=transform)
     val_dataset = ImageNetDataset(data_root=data_root, transform=None)
-
+    print('train dataset size: %d, val dataset size: %d\n'.format(len(train_dataset), len(val_dataset)))
     train_dataloader = DataLoader(dataset=train_dataset,
                                   batch_size=cfg.batch_size,
                                   shuffle=True,
