@@ -130,7 +130,7 @@ def val(val_loader, model, criterion, args, device):
 
             # measure accuracy and record loss
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
-
+    model.train()
 
 if __name__ == '__main':
     train()
