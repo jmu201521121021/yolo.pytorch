@@ -80,13 +80,12 @@ class BottleneckBlock(DarkNetBlockBase):
         )
 
     def forward(self, x):
+        shortcut = x
         out = self.conv_norm_av1(x)
 
         out = self.conv_norm_av2(out)
 
-        shortcut = x
-
-        out += shortcut
+        out = shortcut + out
 
         return out
 
@@ -166,6 +165,7 @@ def make_stage(block_class, num_blocks, **kwargs):
     """
 
     blocks = []
+    kwargs["out_channels"] = kwargs["out_channels"] // 2
     for i in range(num_blocks):
         blocks.append(block_class( **kwargs))
         kwargs["in_channels"] = kwargs["out_channels"]
@@ -266,37 +266,37 @@ def build_darknet_backbone(cfg, input_shape):
         ResNet: a :class:`ResNet` instance.
     """
     # need registration of new blocks/stems?
-    norm = "BN" #cfg.MODEL.DARKNETS.NORM
-    activate = "PReLU" #cfg.MODEL.DARKNETS.ACTIVATE
+    norm = cfg.MODEL.DARKNETS.NORM
+    activate = cfg.MODEL.DARKNETS.ACTIVATE
     stem = BasicStem(
-        in_channels= 3, #input_shape.channels,
-        out_channels= 64, #cfg.MODEL.DARKNETS.STEM_OUT_CHANNELS,
+        in_channels=input_shape.channels,
+        out_channels=cfg.MODEL.DARKNETS.STEM_OUT_CHANNELS,
         norm=norm,
         activate=activate,
     )
-    freeze_at = 0#cfg.MODEL.BACKBONE.FREEZE_AT
+    freeze_at = cfg.MODEL.BACKBONE.FREEZE_AT
 
     if freeze_at >= 1:
         for p in stem.parameters():
             p.requires_grad = False
         stem = FrozenBatchNorm2d.convert_frozen_batchnorm(stem)
 
-    out_features        = ["res3", "res4", "res5"]#cfg.MODEL.RESNETS.OUT_FEATURES
-    depth               =  53#cfg.MODEL.DARKNETS.DEPTH
-    num_groups          =  1#cfg.MODEL.DARKNETS.NUM_GROUPS
-    width_per_group     =  32#cfg.MODEL.DARKNETS.WIDTH_PER_GROUP
+    out_features        = ["res4", "res5", "res6"]#cfg.MODEL.RESNETS.OUT_FEATURES
+    depth               =  cfg.MODEL.DARKNETS.DEPTH
+    num_groups          =  cfg.MODEL.DARKNETS.NUM_GROUPS
+    width_per_group     =  cfg.MODEL.DARKNETS.WIDTH_PER_GROUP
     bottleneck_channels =  num_groups * width_per_group
-    in_channels         =  64#cfg.MODEL.DARKNETS.STEM_OUT_CHANNELS
-    out_channels        =  64 #cfg.MODEL.DARKNETS.RES2_OUT_CHANNELS
-    num_classes         = 1000 #cfg.MODEL.DARKNETS.NUM_CLASSES
+    in_channels         =  cfg.MODEL.DARKNETS.STEM_OUT_CHANNELS
+    out_channels        =  cfg.MODEL.DARKNETS.RES2_OUT_CHANNELS
+    num_classes         =  cfg.MODEL.DARKNETS.NUM_CLASSES
 
-    num_blocks_per_stage = {53:[1, 2, 8, 4],}[depth]
+    num_blocks_per_stage = {53:[1, 2, 8, 8, 4],}[depth]
 
     stages = []
 
     # Avoid creating variables without gradients
     # It consumes extra memory and may cause allreduce to fail
-    out_stage_idx = [{"res3":3, "res4":4, "res5": 5}[f] for f in out_features]
+    out_stage_idx = [{"res4":4, "res5":5, "res6": 6}[f] for f in out_features]
     max_stage_idx = max(out_stage_idx)
     for idx, stage_idx in enumerate(range(2, max_stage_idx + 1)):
         dilation = 1
@@ -311,18 +311,21 @@ def build_darknet_backbone(cfg, input_shape):
             "alpha": 0.1,
             "dilation": dilation,
         }
-
-        out_channels = out_channels*2
         stage_kargs["block_class"] = BottleneckBlock
         blocks = make_stage(**stage_kargs)
         in_channels = out_channels
         bottleneck_channels *= 2
+        out_channels = out_channels * 2
 
         if freeze_at >= stage_idx:
             for block in blocks:
                 block.freeze()
         stages.append(blocks)
-    return DarkNet(stem, stages, out_features=None, num_classes=num_classes)
+
+        if num_classes is not None:
+            out_features = None
+
+    return DarkNet(stem, stages, out_features=out_features, num_classes=num_classes)
 
 if __name__ == '__main__':
     # x = torch.rand(32, 32, 128, 128)

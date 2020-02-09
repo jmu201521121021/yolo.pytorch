@@ -133,6 +133,7 @@ def get_activate(activate, alpha=None):
             "ReLU": nn.ReLU(inplace=True),
             "PReLU": nn.PReLU(init=alpha),
             "Sigmoid": nn.Sigmoid,
+            "LeakReLU":nn.LeakyReLU(negative_slope=alpha, inplace=True),
         }[activate]
     return  activate
 
