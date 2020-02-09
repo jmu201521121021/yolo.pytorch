@@ -6,9 +6,12 @@ def get_default_config():
     # backbone
     CFG.MODEL.BACKBONE = edict()
     CFG.MODEL.BACKBONE.FREEZE_AT = 2
-
+    CFG.MODEL.PIXEL_MEAN = 3
+    CFG.MODEL.BACKBONE.NAME = "build_darknet_backbone"
+    
     # darknet config
     CFG.MODEL.DARKNETS=edict()
+
     CFG.MODEL.DARKNETS.DEPTH = 53
     CFG.MODEL.DARKNETS.OUT_FEATURES = ["res6"] # or ["res4", "res5", "res6"](train yolov3)
     CFG.MODEL.DARKNETS.NUM_GROUPS = 1

@@ -10,7 +10,7 @@ Registry for backbones, which extract feature maps from images
 
 The registered object must be a callable that accepts two arguments:
 
-1. A :class:`detectron2.config.CfgNode`
+1. A :easyDict `
 2. A :class:`yolov3.layers.ShapeSpec`, which contains the input shape specification.
 
 It must returns an instance of :class:`Backbone`.

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+from yolov3.modeling.backbone.build import build_backbone
 from yolov3.modeling.backbone.darknet import build_darknet_backbone
 from yolov3.configs.default import get_default_config
 from yolov3.layers import  ShapeSpec
@@ -8,7 +9,7 @@ if __name__ == "__main__":
     x = torch.randn(1, 3, 256, 256, requires_grad=True)
     cfg = get_default_config()
     input_shape = ShapeSpec(channels=3, height=256, width=256, stride=32)
-    net = build_darknet_backbone(cfg, input_shape)
+    net = build_backbone(cfg, input_shape)
     # net.load_state_dict(torch.load("./weights/darknet53.pth"))
 
     net.eval()
