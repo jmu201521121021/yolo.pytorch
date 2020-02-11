@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from darknet.config import get_parser
 from data.dataset.imagenet import ImageNetDataset
 import data.transform as transforms
-from yolov3.modeling.backbone.build import build_backbone
+from yolov3.modeling import build_backbone
 from yolov3.layers import ShapeSpec
 from yolov3.configs.default import get_default_config
 
@@ -75,7 +75,7 @@ def train():
     cfg = get_default_config()
     cfg.MODEL.DARKNETS.NUM_CLASSES = 1000
     input_shape = ShapeSpec(channels=args.input_channel, width=args.input_width, height=args.input_height)
-    device =torch.device('cpu') if args.gpu_id is None and len(args.gpu_id) == 0 else torch.device('gpu')
+    device =torch.device('cpu') if args.gpu_id is None  else torch.device('gpu')
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
     logger = logging.getLogger('darknet53 train')
@@ -85,9 +85,11 @@ def train():
 
     # 3.set backbone
     model = build_backbone(cfg, input_shape).to(device)
+
     # multi gpu
-    if args.gpu_id is not None and len(args.gpu_id) > 0:
-        model = nn.DataParallel(model)
+    if args.gpu_id is not None:
+        if  len(args.gpu_id) > 0:
+            model = nn.DataParallel(model)
     if args.pretrained:
         model.load_state_dict(torch.load(args.pretrained_model_path))
     # 4.set loss cross entropy
@@ -132,5 +134,5 @@ def val(val_loader, model, criterion, args, device):
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
     model.train()
 
-if __name__ == '__main':
+if __name__ == '__main__':
     train()

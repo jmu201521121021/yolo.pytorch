@@ -12,7 +12,13 @@ from  yolov3.modeling.backbone.backbone import Backbone
 from yolov3.modeling.backbone.build import BACKBONE_REGISTRY
 
 __all__ = [ "DarkNetBlockBase",
-            "BottleneckBlock"]
+            "BottleneckBlock",
+            "BasicPool",
+            "BasicStem",
+            "make_stage",
+            "DarkNet",
+            "build_darknet_backbone",
+            ]
 
 class DarkNetBlockBase(nn.Module):
     def __init__(self, in_channels, out_channels, stride):

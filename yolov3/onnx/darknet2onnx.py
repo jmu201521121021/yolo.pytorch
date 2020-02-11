@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 
-from yolov3.modeling.backbone.build import build_backbone
-from yolov3.modeling.backbone.darknet import build_darknet_backbone
+from yolov3.modeling import build_backbone
+# from yolov3.modeling.backbone.darknet import build_darknet_backbone
 from yolov3.configs.default import get_default_config
 from yolov3.layers import  ShapeSpec
 if __name__ == "__main__":

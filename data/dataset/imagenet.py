@@ -1,6 +1,6 @@
 import torch
 import os
-import torch.utils.data.Dataset as Dataset
+import torch.utils.data as data
 def get_image_list(data_root):
     """
     Args:
@@ -16,7 +16,7 @@ def get_image_list(data_root):
 
     return img_lists
 
-class ImageNetDataset(Dataset):
+class ImageNetDataset(data.Dataset):
     def __init__(self, data_root, transform):
         self.items = get_image_list(data_root)
         self.transform = transform

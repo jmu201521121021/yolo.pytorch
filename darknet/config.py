@@ -18,7 +18,7 @@ def get_parser():
     parser.add_argument('--log_freq', default=100, type=int, help='frequency of show logging, defualt(every 100 iteration to show logging)')
     parser.add_argument('--val_freq', default=1, type=int, help='frequency of val model, default(every 1 epoch to val)')
     parser.add_argument('--batch_size', default=32, type=int, help='batch size')
-    parser.add_argument('--gpu_id', default=[0], type=list, help='gpu id,if multi gpu:[0, 1, ..], if cpu device, set None' )
+    parser.add_argument('--gpu_id', default=None, type=list, help='gpu id,if multi gpu:[0, 1, ..], if cpu device, set None' )
     parser.add_argument('--lr', default=0.001, type=float, help='initial learning rate')
     parser.add_argument('--momentum', default=0.9, type=float,help='momentum')
     parser.add_argument('--weight_decay', default=1e-4, type=float,help='weight decay (default: 1e-4)')
