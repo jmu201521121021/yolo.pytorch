@@ -16,14 +16,20 @@ from yolov3.configs.default import get_default_config
 
 
 def data_loader(data_root, cfg):
-    transform = transforms.Compose(
+    train_transform = transforms.Compose([
+        transforms.ReadImage(),
+        transforms.RandomFlip(),
+        transforms.ResizeImage(cfg.input_width, cfg.input_height),
+        transforms.ToTensor(),
+    ])
+    val_transform = transforms.Compose([
         transforms.ReadImage(),
         transforms.ResizeImage(cfg.input_width, cfg.input_height),
         transforms.ToTensor(),
-    )
-    train_dataset = ImageNetDataset(data_root=data_root, transform=transform)
-    val_dataset = ImageNetDataset(data_root=data_root, transform=None)
-    print('train dataset size: %d, val dataset size: %d\n'.format(len(train_dataset), len(val_dataset)))
+    ])
+    train_dataset = ImageNetDataset(data_root=data_root, transform=train_transform)
+    val_dataset = ImageNetDataset(data_root=data_root, transform=val_transform, is_train=False)
+    print('train dataset size: {}, val dataset size: {}\n'.format(len(train_dataset), len(val_dataset)))
     train_dataloader = DataLoader(dataset=train_dataset,
                                   batch_size=cfg.batch_size,
                                   shuffle=True,
@@ -37,7 +43,8 @@ def data_loader(data_root, cfg):
                                   num_workers=cfg.num_workers,
                                   )
     return train_dataloader, val_dataloader
-def save_checkpoint(state, is_best,save_dir, filename='checkpoint.pth'):
+
+def save_checkpoint(state, is_best, save_dir, filename='checkpoint.pth'):
     """
         save weight
     """
@@ -75,13 +82,13 @@ def train():
     cfg = get_default_config()
     cfg.MODEL.DARKNETS.NUM_CLASSES = 1000
     input_shape = ShapeSpec(channels=args.input_channel, width=args.input_width, height=args.input_height)
-    device =torch.device('cpu') if args.gpu_id is None  else torch.device('gpu')
+    device =torch.device('cpu') if args.gpu_id is None  else torch.device('cuda')
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
     logger = logging.getLogger('darknet53 train')
     tensorboard_writer = SummaryWriter('tb_logs/darknet53_train')
     # 2.load data
-    train_dataloader, val_dataloader = data_loader(args.data_root)
+    train_dataloader, val_dataloader = data_loader(args.data_root, args)
 
     # 3.set backbone
     model = build_backbone(cfg, input_shape).to(device)
@@ -127,7 +134,7 @@ def val(val_loader, model, criterion, args, device):
             target = input_data['label'].to(device)
 
             # compute output
-            output = model(img)
+            output = model(img)['linear']
             loss = criterion(output, target)
 
             # measure accuracy and record loss
