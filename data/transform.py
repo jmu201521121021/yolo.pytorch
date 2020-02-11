@@ -27,6 +27,7 @@ class ReadImage(object):
     """read image"""
     def __call__(self, sample):
         if 'image' not in sample:
+            print(sample['image_path'])
             sample['image'] = cv2.imread(sample['image_path'])
         return sample
 
@@ -59,8 +60,8 @@ class ToTensor(object):
         # numpy image: H x W x C
         # torch image: C X H X W
         image = image.transpose((2, 0, 1))
-        return {'image': torch.from_numpy(image),
-                'label': torch.from_numpy(label)}
+        return {'image': torch.from_numpy(image).float(),
+                'label': torch.from_numpy(label).long()}
 
 class RandomFlip(object):
     """Randomly flip the input image with a probability of 0.5."""
