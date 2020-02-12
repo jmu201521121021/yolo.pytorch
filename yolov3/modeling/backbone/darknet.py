@@ -46,6 +46,7 @@ class BottleneckBlock(DarkNetBlockBase):
         self,
         in_channels,
         out_channels,
+        stride,
         bottleneck_channels,
         num_groups=1,
         norm="BN",
@@ -97,7 +98,7 @@ class BottleneckBlock(DarkNetBlockBase):
 
 class BasicPool(DarkNetBlockBase):
 
-    def __init__(self, in_channels, out_channels, norm="BN", activate="PReLU", alpha=0.1, stride=2):
+    def __init__(self, in_channels, out_channels, norm="BN", activate="LeakyReLU", alpha=0.1, stride=2):
         super(BasicPool, self).__init__(in_channels, out_channels, stride=stride)
         self.conv_norm_av =  ConvNormAV(
             in_channels,
@@ -114,7 +115,7 @@ class BasicPool(DarkNetBlockBase):
         return  self.conv_norm_av(x)
 
 class BasicStem(nn.Module):
-    def __init__(self, in_channels=3, out_channels=64, norm="BN", activate="PReLU", alpha=0.1):
+    def __init__(self, in_channels=3, out_channels=64, norm="BN", activate="LeakyReLU", alpha=0.1):
         """
         Args:
             norm (str or callable): a callable that takes the number of
@@ -175,13 +176,14 @@ def make_stage(block_class, num_blocks, **kwargs):
     for i in range(num_blocks):
         blocks.append(block_class( **kwargs))
         kwargs["in_channels"] = kwargs["out_channels"]
-    blocks.append( BasicPool(
-            kwargs["in_channels"],
-            kwargs["out_channels"]*2,
-            norm=kwargs["norm"],
-            activate=kwargs["activate"],
-            alpha=kwargs["alpha"]
-        ))
+    if kwargs["stride"] == 2:
+        blocks.append( BasicPool(
+                kwargs["in_channels"],
+                kwargs["out_channels"]*2,
+                norm=kwargs["norm"],
+                activate=kwargs["activate"],
+                alpha=kwargs["alpha"]
+            ))
     return blocks
 
 class DarkNet(Backbone):
@@ -206,18 +208,23 @@ class DarkNet(Backbone):
         self._out_feature_channels = {"stem": self.stem.out_channels}
 
         self.stages_and_names = []
+
+
         for i, blocks in enumerate(stages):
             for block in blocks:
                 if isinstance(block, DarkNetBlockBase):
                     curr_channels = block.out_channels
-            stage = nn.Sequential(*blocks)
+            stage = nn.Sequential(*blocks) if i == (len(stages) - 1) else nn.Sequential(*blocks[:-1])
+            conv_stride = None if i == (len(stages) - 1) else blocks[-1]
             name = "res" + str(i + 2)
             self.add_module(name, stage)
-            self.stages_and_names.append((stage, name))
-            self._out_feature_strides[name] = current_stride = int(
+            self.add_module(name +'_stride', conv_stride)
+            self.stages_and_names.append((stage, conv_stride, name))
+            self._out_feature_strides[name] = current_stride
+            self._out_feature_channels[name] = blocks[-1].out_channels if i == (len(stages) - 1) else  blocks[-2].out_channels
+            current_stride = current_stride if i == (len(stages) - 1) else int(
                 current_stride * 2
             )
-            self._out_feature_channels[name] = blocks[-1].out_channels
 
         if num_classes is not None:
             self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -242,10 +249,13 @@ class DarkNet(Backbone):
         x = self.stem(x)
         if "stem" in self._out_features:
             outputs["stem"] = x
-        for stage, name in self.stages_and_names:
+        for stage, conv_stide, name in self.stages_and_names:
             x = stage(x)
             if name in self._out_features:
                 outputs[name] = x
+            if conv_stide is not  None:
+                x = conv_stide(x)
+
         if self.num_classes is not None:
             x = self.avgpool(x)
             x = torch.flatten(x, 1)
@@ -287,7 +297,7 @@ def build_darknet_backbone(cfg, input_shape):
             p.requires_grad = False
         stem = FrozenBatchNorm2d.convert_frozen_batchnorm(stem)
 
-    out_features        = ["res4", "res5", "res6"]#cfg.MODEL.RESNETS.OUT_FEATURES
+    out_features        =  cfg.MODEL.DARKNETS.OUT_FEATURES
     depth               =  cfg.MODEL.DARKNETS.DEPTH
     num_groups          =  cfg.MODEL.DARKNETS.NUM_GROUPS
     width_per_group     =  cfg.MODEL.DARKNETS.WIDTH_PER_GROUP
@@ -317,6 +327,7 @@ def build_darknet_backbone(cfg, input_shape):
             "alpha": 0.1,
             "dilation": dilation,
         }
+        stage_kargs["stride"] = 1 if stage_idx == max_stage_idx else 2
         stage_kargs["block_class"] = BottleneckBlock
         blocks = make_stage(**stage_kargs)
         in_channels = out_channels

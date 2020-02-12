@@ -6,6 +6,9 @@ from .backbone import (
     build_backbone,
     build_darknet_backbone,
     make_stage,
+    FPN,
+    OutConvLayer,
+    build_darknet_fpn_backbone
 )
 
 

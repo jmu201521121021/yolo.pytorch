@@ -5,7 +5,9 @@ def get_default_config():
     CFG.MODEL = edict()
     # backbone
     CFG.MODEL.BACKBONE = edict()
-    CFG.MODEL.BACKBONE.FREEZE_AT = 2
+    # FPN
+    CFG.MODEL.FPN = edict()
+    CFG.MODEL.BACKBONE.FREEZE_AT = 0
     CFG.MODEL.PIXEL_MEAN = 3
     CFG.MODEL.BACKBONE.NAME = "build_darknet_backbone"
     
@@ -22,6 +24,11 @@ def get_default_config():
     CFG.MODEL.DARKNETS.NUM_CLASSES = 1000 # or None(train yolov3)
     # stem
     CFG.MODEL.DARKNETS.STEM_OUT_CHANNELS = 64
+    # FPN
+    CFG.MODEL.FPN.IN_FEATURES = ["res4", "res5", "res6"]
+    CFG.MODEL.FPN.OUT_CHANNELS = [128, 256, 512]
+    CFG.MODEL.FPN.FUSE_TYPE = 'concat' # or 'avg' or 'sum
+    CFG.MODEL.FPN.NORM = 'BN'
 
     return CFG
 
