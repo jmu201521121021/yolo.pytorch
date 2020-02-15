@@ -6,7 +6,7 @@
 - run setup.py, open $root_dir/$
   ```shell
     pip install -e.
-    ```
+  ```
 ## Common Installation Issues
 
 - ERROR: Cannot uninstall 'PyYAML'. It is a distutils installed project and thus we cannot accurately determine which files belong to it which would lead to only a partial uninstall.
@@ -18,7 +18,6 @@
     pip uninstall PyYAML
     ```
 
-     
 
   - finish, upgrad pip
 
@@ -27,4 +26,15 @@
     ```
 
     ​
+
+
+
+
+## Output
+
+- yolov3-darknet
+  - fpn
+    - p3: $N \times 128 \times W/8 \times  H/8$
+    - p4: $N\times 256 \times W/16 \times H/16$
+    - p5: $N\times 512\times W/32\times H/32$
 

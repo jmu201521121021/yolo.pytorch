@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-
+from torch.onnx import OperatorExportTypes
 from yolov3.modeling import build_backbone
 
 from yolov3.configs.default import get_default_config
@@ -19,10 +19,9 @@ def darknet53():
     torch.onnx.export(net,  # model being run
                       x,  # model input (or a tuple for multiple inputs)
                       "./weights/darknet53.onnx",  # where to save the model (can be a file or file-like object)
-                      export_params=True,  # store the trained parameter weights inside the model file
-                      opset_version=10,  # the ONNX version to export the model to
-                      do_constant_folding=True,  # whether to execute constant folding for optimization
-
+                      operator_export_type=OperatorExportTypes.ONNX_ATEN_FALLBACK,
+                      # verbose=True,  # NOTE: uncomment this for debugging
+                      # export_params=True,
                       )
     # print(tensor_out["res3"].size())
     import onnx
@@ -58,10 +57,9 @@ def darknet53_fpn():
     torch.onnx.export(net,  # model being run
                       x,  # model input (or a tuple for multiple inputs)
                       "./weights/darknet53_fpn.onnx",  # where to save the model (can be a file or file-like object)
-                      export_params=True,  # store the trained parameter weights inside the model file
-                      opset_version=11,  # the ONNX version to export the model to
-                      do_constant_folding=True,  # whether to execute constant folding for optimization
-
+                      operator_export_type=OperatorExportTypes.ONNX_ATEN_FALLBACK,
+                      # verbose=True,  # NOTE: uncomment this for debugging
+                      # export_params=True,
                       )
     # print(tensor_out["res3"].size())
     import onnx
@@ -79,7 +77,7 @@ def darknet53_fpn():
     ort_outs = ort_session.run(None, ort_inputs)
 
     # compare ONNX Runtime and PyTorch results
-    np.testing.assert_allclose(to_numpy(tensor_out["p5"]), ort_outs[0], rtol=1e-01, atol=1e-05)
+    np.testing.assert_allclose(to_numpy(tensor_out["p3"]), ort_outs[0], rtol=0.2, atol=1e-05)
 
     print("Exported model has been tested with ONNXRuntime, and the result looks good!")
 if __name__ == "__main__":

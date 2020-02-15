@@ -14,19 +14,18 @@ from .darknet import build_darknet_backbone
 
 __all__ = ["OutConvLayer", "build_darknet_fpn_backbone", "FPN"]
 class OutConvLayer(nn.Module):
-    def __init__(self, in_channels,bottleneck_channels, out_channels, norm="BN", activate="LeakReLU", alpha=0.1):
+    def __init__(self, in_channels,bottleneck_channels, out_channels,  norm="BN", activate="LeakReLU", alpha=0.1):
         super(OutConvLayer, self).__init__()
-        self.conv1 = []
-
+        conv1 = []
         for i in range(2):
-            self.conv1.append(ConvNormAV(in_channels,
+            conv1.append(ConvNormAV(in_channels,
                                          bottleneck_channels,
                                          stride=1,
                                          kernel_size=1,
                                          norm=get_norm(norm, bottleneck_channels),
                                          activae=get_activate(activate, alpha),
                                          bias=False,))
-            self.conv1.append(ConvNormAV(bottleneck_channels,
+            conv1.append(ConvNormAV(bottleneck_channels,
                                          out_channels,
                                          kernel_size=3,
                                          stride=1,
@@ -38,27 +37,33 @@ class OutConvLayer(nn.Module):
 
 
 
-        self.conv1.append(ConvNormAV(in_channels,
+        conv1.append(ConvNormAV(in_channels,
                          bottleneck_channels,
                          kernel_size=1,
                          stride=1,
                          norm=get_norm(norm, bottleneck_channels),
                          activae=get_activate(activate, alpha),
                          bias=False, ))
-        self.conv1 = nn.Sequential(*self.conv1)
-        self.conv2 = ConvNormAV(bottleneck_channels,
-                         bottleneck_channels//2,
-                         kernel_size=1,
-                         stride=1,
-                         norm=get_norm(norm, bottleneck_channels//2),
-                         activae=get_activate(activate, alpha),
-                         bias=False, )
+        self.conv1 = nn.Sequential(*conv1)
+
+
 
     def forward(self, x):
         out = self.conv1(x)
-        lateral_conv_out = self.conv2(out)
-        return out, lateral_conv_out
+        return out
 
+class OutLayerFinal(nn.Module):
+    def __init__(self, in_channels, out_channels,  norm="BN", activate="LeakReLU", alpha=0.1):
+        super(OutLayerFinal, self).__init__()
+        self.conv_final = ConvNormAV(in_channels,
+                                     out_channels,
+                                     kernel_size=1,
+                                     stride=1,
+                                     norm=get_norm(norm, out_channels ),
+                                     activae=get_activate(activate, alpha),
+                                     bias=False, )
+    def forward(self, x):
+        return self.conv_final(x)
 
 class FPN(Backbone):
     """
@@ -68,7 +73,7 @@ class FPN(Backbone):
 
     def __init__(
         self, bottom_up, in_features, out_channels, norm="BN", activate="LeakReLU", alpha=0.1,
-            top_block=None, fuse_type="concat"
+            fuse_type="concat"
     ):
         """
         Args:
@@ -82,13 +87,6 @@ class FPN(Backbone):
                 of these may be used; order must be from high to low resolution.
             out_channels (list): number of channels in the output feature maps.
             norm (str): the normalization to use.
-            top_block (nn.Module or None): if provided, an extra operation will
-                be performed on the output of the last (smallest resolution)
-                FPN output, and the result will extend the result list. The top_block
-                further downsamples the feature map. It must have an attribute
-                "num_levels", meaning the number of extra FPN levels added by
-                this block, and "in_feature", which is a string representing
-                its input feature (e.g., p5).
             fuse_type (str): types for fusing the top down features and the lateral
                 ones. It can be "sum" (default), which sums up element-wise; or "avg",
                 which takes the element-wise mean of the two.
@@ -104,6 +102,8 @@ class FPN(Backbone):
             in_channels[:-1] = [in_channels[i] + out_channels[i] for i in range(0,len(in_features)-1)]
         #_assert_strides_are_log2_contiguous(in_strides)
         output_convs = []
+        output_final_convs = []
+
 
         for idx, in_channel in enumerate(in_channels):
             out_channel = out_channels[idx]
@@ -119,18 +119,29 @@ class FPN(Backbone):
             stage = int(math.log2(in_strides[idx]))
             self.add_module("fpn_output{}".format(stage), output_conv)
             output_convs.append(output_conv)
+        output_final_convs.append(None)
+
+        for idx, out_channel in enumerate(out_channels[1:]):
+            output_final_conv = nn.Sequential(OutLayerFinal(out_channel,
+                                                         out_channel // 2,
+                                                         norm=norm,
+                                                         activate=activate,
+                                                         alpha=alpha )
+                                              )
+            stage = int(math.log2(in_strides[idx + 1]))
+            self.add_module("fpn_output_final_conv{}".format(stage), output_final_conv)
+            output_final_convs.append(output_final_conv)
+
         # Place convs into top-down order (from low to high resolution)
         # to make the top-down computation in forward clearer.
         self.output_convs = output_convs[::-1]
-        self.top_block = top_block
+        self.output_final_convs = output_final_convs[::-1]
+
         self.in_features = in_features
         self.bottom_up = bottom_up
         # Return feature names are "p<stage>", like ["p2", "p3", ..., "p6"]
         self._out_feature_strides = {"p{}".format(int(math.log2(s))): s for s in in_strides}
         # top block output feature maps.
-        if self.top_block is not None:
-            for s in range(stage, stage + self.top_block.num_levels):
-                self._out_feature_strides["p{}".format(s + 1)] = 2 ** (s + 1)
 
         self._out_features = list(self._out_feature_strides.keys())
         self._out_feature_channels = {k: out_channels[i] for i, k in enumerate(self._out_features)}
@@ -153,30 +164,28 @@ class FPN(Backbone):
                 mapping from feature map name to FPN feature map tensor
                 in high to low resolution order. Returned feature names follow the FPN
                 paper convention: "p<stage>", where stage has stride = 2 ** stage e.g.,
-                ["p2", "p3", ..., "p6"].
+                ["p3", "p4", "p5"].
         """
         # Reverse feature maps into top-down order (from low to high resolution)
         bottom_up_features = self.bottom_up(x)
         x = [bottom_up_features[f] for f in self.in_features[::-1]]
         results = []
-        result, prev_features = self.output_convs[0](x[0])
+        result = self.output_convs[0](x[0])
         results.append(result)
+        prev_features = self.output_final_convs[0](result)
 
-        for features, output_conv in zip(
-            x[1:], self.output_convs[1:]
+        for features, output_conv, output_final_conv, in zip(
+            x[1:], self.output_convs[1:], self.output_final_convs[1:]
         ):
-            top_down_features = F.interpolate(prev_features, scale_factor=2, mode="nearest")
+            top_down_features =F.interpolate(prev_features, scale_factor=2, mode="nearest")
             prev_features = torch.cat((features, top_down_features),1)
             if self._fuse_type == "avg":
                 prev_features /= 2
-            result, prev_features = output_conv(prev_features)
+            result = output_conv(prev_features)
             results.insert(0, result)
+            if output_final_conv is not  None:
+                prev_features = output_final_conv(result)
 
-        if self.top_block is not None:
-            top_block_in_feature = bottom_up_features.get(self.top_block.in_feature, None)
-            if top_block_in_feature is None:
-                top_block_in_feature = results[self._out_features.index(self.top_block.in_feature)]
-            results.extend(self.top_block(top_block_in_feature))
         assert len(self._out_features) == len(results)
         return dict(zip(self._out_features, results))
 
@@ -205,7 +214,6 @@ def build_darknet_fpn_backbone(cfg, input_shape):
         in_features=in_features,
         out_channels=out_channels,
         norm=cfg.MODEL.FPN.NORM,
-        top_block=None,
         fuse_type=cfg.MODEL.FPN.FUSE_TYPE,
     )
     return backbone

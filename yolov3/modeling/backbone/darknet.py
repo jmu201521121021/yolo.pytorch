@@ -218,7 +218,8 @@ class DarkNet(Backbone):
             conv_stride = None if i == (len(stages) - 1) else blocks[-1]
             name = "res" + str(i + 2)
             self.add_module(name, stage)
-            self.add_module(name +'_stride', conv_stride)
+            if conv_stride is not None:
+                self.add_module(name +'_stride', conv_stride)
             self.stages_and_names.append((stage, conv_stride, name))
             self._out_feature_strides[name] = current_stride
             self._out_feature_channels[name] = blocks[-1].out_channels if i == (len(stages) - 1) else  blocks[-2].out_channels
