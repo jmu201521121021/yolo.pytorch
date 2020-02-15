@@ -168,7 +168,7 @@ class ConvNormAV(nn.Module):
                  groups=1,
                  dilation=1,
                  norm=nn.BatchNorm2d,
-                 activae=nn.ReLU,
+                 activate=nn.LeakyReLU,
                  bias=False):
 
         super(ConvNormAV, self).__init__()
@@ -181,7 +181,7 @@ class ConvNormAV(nn.Module):
                               dilation=dilation,
                               bias=bias)
         self.norm = norm
-        self.activate = activae
+        self.activate = activate
 
         weight_init.c2_msra_fill(self.conv)
 
