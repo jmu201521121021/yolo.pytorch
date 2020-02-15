@@ -69,7 +69,7 @@ class BottleneckBlock(DarkNetBlockBase):
             kernel_size = 1,
             stride= stride_1x1,
             norm = get_norm(norm, bottleneck_channels),
-            activae= get_activate(activate, alpha),
+            activate= get_activate(activate, alpha),
             bias=False,
         )
 
@@ -82,7 +82,7 @@ class BottleneckBlock(DarkNetBlockBase):
             groups=num_groups,
             dilation=dilation,
             norm=get_norm(norm, out_channels),
-            activae=get_activate(activate, alpha),
+            activate=get_activate(activate, alpha),
             bias=False
         )
 
@@ -108,7 +108,7 @@ class BasicPool(DarkNetBlockBase):
             padding=1,
             bias=False,
             norm=get_norm(norm, out_channels),
-            activae=get_activate(activate, alpha)
+            activate=get_activate(activate, alpha)
         )
 
     def forward(self, x):
@@ -132,7 +132,7 @@ class BasicStem(nn.Module):
             padding=1,
             bias=False,
             norm=get_norm(norm, out_channels//2),
-            activae=get_activate(activate, alpha)
+            activate=get_activate(activate, alpha)
         )
         self.conv_bn_av2 = ConvNormAV(
             out_channels // 2,
@@ -142,7 +142,7 @@ class BasicStem(nn.Module):
             padding=1,
             bias=False,
             norm=get_norm(norm, out_channels),
-            activae=get_activate(activate, alpha)
+            activate=get_activate(activate, alpha)
         )
 
     def forward(self, x):
@@ -285,11 +285,13 @@ def build_darknet_backbone(cfg, input_shape):
     # need registration of new blocks/stems?
     norm = cfg.MODEL.DARKNETS.NORM
     activate = cfg.MODEL.DARKNETS.ACTIVATE
+    alpha = cfg.MODEL.DARKNETS.ACTIVATE_ALPHA
     stem = BasicStem(
         in_channels=input_shape.channels,
         out_channels=cfg.MODEL.DARKNETS.STEM_OUT_CHANNELS,
         norm=norm,
         activate=activate,
+        alpha= alpha
     )
     freeze_at = cfg.MODEL.BACKBONE.FREEZE_AT
 
@@ -325,7 +327,7 @@ def build_darknet_backbone(cfg, input_shape):
             "num_groups": num_groups,
             "norm": norm,
             "activate": activate,
-            "alpha": 0.1,
+            "alpha": alpha,
             "dilation": dilation,
         }
         stage_kargs["stride"] = 1 if stage_idx == max_stage_idx else 2

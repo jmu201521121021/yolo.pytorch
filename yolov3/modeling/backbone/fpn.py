@@ -23,7 +23,7 @@ class OutConvLayer(nn.Module):
                                          stride=1,
                                          kernel_size=1,
                                          norm=get_norm(norm, bottleneck_channels),
-                                         activae=get_activate(activate, alpha),
+                                         activate=get_activate(activate, alpha),
                                          bias=False,))
             conv1.append(ConvNormAV(bottleneck_channels,
                                          out_channels,
@@ -31,7 +31,7 @@ class OutConvLayer(nn.Module):
                                          stride=1,
                                          padding=1,
                                          norm=get_norm(norm, out_channels),
-                                         activae=get_activate(activate, alpha),
+                                         activate=get_activate(activate, alpha),
                                          bias=False, ))
             in_channels = out_channels
 
@@ -42,7 +42,7 @@ class OutConvLayer(nn.Module):
                          kernel_size=1,
                          stride=1,
                          norm=get_norm(norm, bottleneck_channels),
-                         activae=get_activate(activate, alpha),
+                         activate=get_activate(activate, alpha),
                          bias=False, ))
         self.conv1 = nn.Sequential(*conv1)
 
@@ -60,7 +60,7 @@ class OutLayerFinal(nn.Module):
                                      kernel_size=1,
                                      stride=1,
                                      norm=get_norm(norm, out_channels ),
-                                     activae=get_activate(activate, alpha),
+                                     activate=get_activate(activate, alpha),
                                      bias=False, )
     def forward(self, x):
         return self.conv_final(x)

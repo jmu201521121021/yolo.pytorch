@@ -10,6 +10,12 @@ from .backbone import (
     OutConvLayer,
     build_darknet_fpn_backbone
 )
-
+from  .meta_arch import (
+    build_model,
+    META_ARCH_REGISTRY,
+    Yolov3Head,
+    Yolov3,
+)
+from .anchor_generator import ANCHOR_GENERATOR_REGISTRY, build_anchor_generator
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]
