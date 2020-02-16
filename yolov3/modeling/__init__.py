@@ -16,6 +16,8 @@ from  .meta_arch import (
     Yolov3Head,
     Yolov3,
 )
+
+from  .matcher import Matcher
 from .anchor_generator import ANCHOR_GENERATOR_REGISTRY, build_anchor_generator
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]

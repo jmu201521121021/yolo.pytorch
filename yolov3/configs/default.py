@@ -9,6 +9,9 @@ def get_default_config():
     CFG.MODEL.FPN = edict()
     # YOLOV3
     CFG.MODEL.YOLOV3 = edict()
+
+    #device
+    CFG.MODEL.DEVICE = 'cpu' #or if have gpu device then 'cuda'
     #anchor generator
     CFG.MODEL.ANCHOR_GENERATOR = edict()
 

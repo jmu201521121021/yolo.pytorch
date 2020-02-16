@@ -32,9 +32,18 @@
 
 ## Output
 
-- yolov3-darknet
+- yolov3-darknet53
   - fpn
     - p3: $N \times 128 \times W/8 \times  H/8$
-    - p4: $N\times 256 \times W/16 \times H/16$
+    - p4: $N\times 256 \times W/16 \times H/16​$
     - p5: $N\times 512\times W/32\times H/32$
 
+
+
+- All boxes format
+
+  ```python
+  Boxes
+  ```
+
+  ​
