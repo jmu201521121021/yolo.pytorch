@@ -45,6 +45,9 @@ def get_default_config():
 
     #anchor generator
     CFG.MODEL.ANCHOR_GENERATOR.NAME = "DefaultAnchorGenerator"
+    CFG.MODEL.ANCHOR_GENERATOR.OFFSET = 0.0
+    CFG.MODEL.ANCHOR_GENERATOR.SIZES = (((10,13), (16,30), (33,23)),((30,61),  (62,45),  (59,119)),((116,90),  (156,198),  (373,326)))
+
     return CFG
 
 
