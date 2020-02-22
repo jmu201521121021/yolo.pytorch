@@ -8,40 +8,16 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from darknet.config import get_parser
-from data.dataset.imagenet import ImageNetDataset
+from data.dataloader import build_classifier_train_dataloader, build_classifier_test_dataloader
 import data.transform as transforms
 from yolov3.modeling import build_backbone
 from yolov3.layers import ShapeSpec
 from yolov3.configs.default import get_default_config
 
 
-def data_loader(data_root, cfg):
-    train_transform = transforms.Compose([
-        transforms.ReadImage(),
-        transforms.RandomFlip(),
-        transforms.ResizeImage(cfg.input_width, cfg.input_height),
-        transforms.ToTensor(),
-    ])
-    val_transform = transforms.Compose([
-        transforms.ReadImage(),
-        transforms.ResizeImage(cfg.input_width, cfg.input_height),
-        transforms.ToTensor(),
-    ])
-    train_dataset = ImageNetDataset(data_root=data_root, transform=train_transform)
-    val_dataset = ImageNetDataset(data_root=data_root, transform=val_transform, is_train=False)
-    print('train dataset size: {}, val dataset size: {}\n'.format(len(train_dataset), len(val_dataset)))
-    train_dataloader = DataLoader(dataset=train_dataset,
-                                  batch_size=cfg.batch_size,
-                                  shuffle=True,
-                                  drop_last=True,
-                                  num_workers=cfg.num_workers,
-                                  )
-    val_dataloader = DataLoader(dataset=val_dataset,
-                                  batch_size=cfg.batch_size,
-                                  shuffle=False,
-                                  drop_last=False,
-                                  num_workers=cfg.num_workers,
-                                  )
+def data_loader(cfg):
+    train_dataloader = build_classifier_train_dataloader(cfg)
+    val_dataloader = build_classifier_test_dataloader(cfg)
     return train_dataloader, val_dataloader
 
 def save_checkpoint(state, is_best, save_dir, filename='checkpoint.pth'):
@@ -80,6 +56,8 @@ def train():
     # 1.set cfg
     args = get_parser()
     cfg = get_default_config()
+    cfg.DATASET.DATA_ROOT = "E:\workspaces\YOLO_PYTORCH\dataset\imagenet"
+    cfg.DATASET.DATASET_NAME = "BuildImageNetDataset"
     cfg.MODEL.DARKNETS.NUM_CLASSES = 1000
     input_shape = ShapeSpec(channels=args.input_channel, width=args.input_width, height=args.input_height)
     device =torch.device('cpu') if args.gpu_id is None  else torch.device('cuda')
@@ -88,7 +66,7 @@ def train():
     logger = logging.getLogger('darknet53 train')
     tensorboard_writer = SummaryWriter('tb_logs/darknet53_train')
     # 2.load data
-    train_dataloader, val_dataloader = data_loader(args.data_root, args)
+    train_dataloader, val_dataloader = data_loader(cfg)
 
     # 3.set backbone
     model = build_backbone(cfg, input_shape).to(device)
@@ -112,7 +90,7 @@ def train():
             target = input_data['label'].to(device)
             total_iter += 1
             output = model(img)
-            loss = criterion(output, target)
+            loss = criterion(output["linear"], target)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

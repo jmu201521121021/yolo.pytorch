@@ -2,6 +2,13 @@ from easydict import EasyDict as edict
 
 def get_default_config():
     CFG = edict()
+    #dataset
+    CFG.DATASET = edict()
+    #dataloader
+    CFG.DATALOADER = edict()
+    # solver
+    CFG.SOLVER =edict()
+    # model
     CFG.MODEL = edict()
     # backbone
     CFG.MODEL.BACKBONE = edict()
@@ -9,6 +16,18 @@ def get_default_config():
     CFG.MODEL.FPN = edict()
     # YOLOV3
     CFG.MODEL.YOLOV3 = edict()
+
+    #SOLVER
+    CFG.SOLVER.IMS_PER_BATCH = 1
+    CFG.SOLVER.BATCH_SIZE = 2
+
+    #dataset
+    CFG.DATASET.DATASET_NAME = "imagenet"
+    CFG.DATASET.TRAIN_TRANSFORM = ["ReadImage()","ResizeImage(256, 256)","ToTensor()"]
+    CFG.DATASET.TEST_TRANSFORM = ["ReadImage()", "ResizeImage(256, 256)", "ToTensor()"]
+    CFG.DATASET.DATA_ROOT = ""
+    #dataloader
+    CFG.DATALOADER.NUM_WORKERS = 8 # thead number of dataloader
 
     #device
     CFG.MODEL.DEVICE = 'cpu' #or if have gpu device then 'cuda'
