@@ -1,9 +1,7 @@
 import cv2
 import random
 import numpy as np
-import torch 
-import numbers
-
+import torch
 class Compose(object):
     """Composes several transforms together.
 
@@ -77,72 +75,3 @@ class RandomFlip(object):
             sample['image'] = image
         return sample
 
-class Normalize(object):
-    """" Normalize a tensor image with mean and standard deviation
-    Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, this transform
-    will normalize each channel of the input ``torch.*Tensor`` i.e.
-    ``input[channel] = (input[channel] - mean[channel]) / std[channel]``
-    """
-    def __init__(self, mean, std):
-        self.mean = mean
-        self.std = std
-
-    def __call__(self, tensor):
-        """
-        Args:
-            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
-        """
-        for t, m, s in zip(tensor, self.mean, self.std):
-            t.sub_(m).div_(s)
-        return tensor
-
-    def __repr__(self):
-        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
-
-class Scale(ResizeImage):
-    """
-    Note: This transform is deprecated in favor of Resize.
-    """
-    def __init__(self, *args, **kwargs):
-        super(Scale, self).__init__(*args, **kwargs)
-
-class CenterCrop(object):
-    """Crops the given PIL Image at the center.
-    Args:
-        size (sequence or int): Desired output size of the crop. If size is an
-            int instead of sequence like (h, w), a square crop (size, size) is
-            made.
-    """
-    def __init__(self, output_size):
-        if isinstance(output_size, numbers.Number):
-            self.output_size = (int(output_size), int(output_size))
-        else:
-            self.output_size = output_size
-
-    def __call__(self, img):
-        h, w = img.shape[:2]
-        th, tw = self.output_size
-        i = int(round(h-th / 2.))
-        j = int(round(w-tw / 2.))
-        return img[i:i+th, j:j+tw]
-
-class RandomCrop(object):
-    """Crop the given PIL Image at a random location.
-    Args:
-        size (sequence or int): Desired output size of the crop. If size is an
-            int instead of sequence like (h, w), a square crop (size, size) is
-            made.
-        padding (int or sequence, optional): Optional padding on each border
-            of the image. Default is 0, i.e no padding. If a sequence of length
-            4 is provided, it is used to pad left, top, right, bottom borders
-            respectively.
-        pad_if_needed (boolean): It will pad the image if smaller than the
-            desired size to avoid raising an exception.
-    """
-    def __init__(self, size, padding=0, pad_if_needed=False):
-        if isinstance(size, numbers.Number):
-            self.size = (int(size), int(size))
-        else:
-            self.size = size
-        self.padding = padding
-        self.pad_if_needed = pad_if_needed
