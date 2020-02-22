@@ -78,11 +78,10 @@ class RandomFlip(object):
 
 class Normalize(object):
     """" Normalize a tensor image with mean and standard deviation
-    Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, if not None, this transform
-    will normalize each channel of the input ``torch.*Tensor`` i.e.
-    ``input[channel] = (input[channel] - mean[channel]) / std[channel]``
+    Given mean and std, if not None, this transform will normalize the input ``torch.*Tensor`` i.e.
+    ``input = (input - mean) / std``
     else
-    ``input[channel] = input[channel] / 255
+    ``input = input / 255
     """
     def __init__(self, mean=None, std=None):
         self.mean = mean
@@ -91,15 +90,15 @@ class Normalize(object):
     def __call__(self, sample):
         """
         Args:
-            sample (Tensor): Tensor image of size (C, H, W) to be normalized.
+            image : Tensor image of size (C, H, W) to be normalized.
         """
-        if not self.mean or not self.std:
-            for t in sample:
-                t = t.div_(255.)
-        else:
-            for t, m, s in zip(sample, self.mean, self.std):
-                t.sub_(m).div_(s)
-        return sample
+        image = sample["image"] 
+        if self.mean is None or self.std is None: 
+            image.div_(255) 
+   	else:
+	    image.sub_(self.mean).div_(self.std) 
+        sample["image"] = image 
+	return sample 
 
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
@@ -125,11 +124,12 @@ class CenterCrop(object):
             self.output_size = output_size
 
     def __call__(self, sample):
-        h, w = sample.shape[:2]
+        image = sample['image']
+        h, w = image.shape[:2]
         th, tw = self.output_size
         i = int(round(h-th / 2.))
         j = int(round(w-tw / 2.))
-        return sample[i:i+th, j:j+tw]
+        return image[i:i+th, j:j+tw]
 
 class RandomCrop(object):
     """Crop the given PIL Image at a random location.
