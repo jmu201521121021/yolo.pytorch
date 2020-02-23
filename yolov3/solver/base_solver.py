@@ -22,7 +22,6 @@ class BaseSolver(metaclass=ABCMeta):
         with  EventStorage(self.start_epoch) as self.storage:
             for epoch in range(self.start_epoch, self.max_epoch + 1):
                 self._train_iter = iter(self._train_dataloader)
-                self._test_iter = iter(self._test_dataloader)
                 for _ in range(len(self._train_dataloader)):
                     self.run_step()
                     self.after_step()
@@ -61,7 +60,7 @@ class BaseSolver(metaclass=ABCMeta):
     def after_step(self):
         """Called  the  after iteration."""
 
-    def test(self,dataloader):
+    def test(self):
         pass
 
     def print_network(self):

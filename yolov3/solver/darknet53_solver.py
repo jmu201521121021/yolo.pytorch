@@ -9,6 +9,7 @@ from yolov3.utils.logger import setup_logger
 from  yolov3.solver.base_solver import BaseSolver
 from data.dataloader import build_classifier_train_dataloader, build_classifier_test_dataloader
 from yolov3.utils.events import EventStorage
+from yolov3.evaluation import  ImagenetEvaluator, inference_on_dataset
 
 __all__ = ["TrainDarknet53Solver"]
 
@@ -34,6 +35,10 @@ class TrainDarknet53Solver(BaseSolver):
         self.cfg.DATASET.DATA_ROOT = "E:\workspaces\YOLO_PYTORCH\dataset\imagenet"
         self.cfg.DATASET.DATASET_NAME = "BuildImageNetDataset"
         self.cfg.MODEL.DARKNETS.NUM_CLASSES = 1000
+
+        self.dataset_name = self.cfg.DATASET.DATASET_NAME
+        # evaluation
+        self.evaluator = ImagenetEvaluator(self.dataset_name)
 
         self.device = torch.device('cpu') if len(self.gpu_ids) == 0  else torch.device('cuda')
 
@@ -62,7 +67,6 @@ class TrainDarknet53Solver(BaseSolver):
         with  EventStorage(self.start_epoch) as self.storage:
             for epoch in range(self.start_epoch, self.max_epoch + 1):
                 self._train_iter = iter(self._train_dataloader)
-                self._test_iter = iter(self._test_dataloader)
                 for _ in range(len(self._train_dataloader)):
                     self.run_step()
                     self.after_step()
@@ -71,7 +75,7 @@ class TrainDarknet53Solver(BaseSolver):
                     self.save_model(epoch)
                 # validate model
                 if (epoch + 1) % self.test_freq == 0:
-                    self.test(self._test_dataloader)
+                    self.test()
                 self.adjust_learning_rate(epoch)
         self.after_train()
 
@@ -80,7 +84,6 @@ class TrainDarknet53Solver(BaseSolver):
         Called before the first iteration.
         """
         self._train_dataloader, self._test_dataloader = self.build_dataloader()
-
 
         self.max_iter = self.max_epoch * len(self._train_dataloader)
         self._writers = self.build_writers()
@@ -91,6 +94,7 @@ class TrainDarknet53Solver(BaseSolver):
         if len(self.pretrained) > 0:
             self.model.load_state_dict(torch.load(self.pretrained))
 
+        self.model.train(True)
 
     def after_train(self):
         """
@@ -130,20 +134,9 @@ class TrainDarknet53Solver(BaseSolver):
             self.writers_write()
         self.storage.step()
 
-    def test(self, dataloader):
-        with torch.no_grad():
-            self.model.eval()
-            for i, input_data in enumerate(dataloader):
-                img = input_data['image'].to(self.device)
-                target = input_data['label'].to(self.device)
-
-                # compute output
-                output = self.model(img)['linear']
-                loss = self.criterion(output, target)
-
-                # measure accuracy and record loss
-                # acc1, acc5 = accuracy(output, target, topk=(1, 5))
-        self.model.train()
+    def test(self):
+        pass
+        # results = inference_on_dataset(self.model,self._test_dataloader, self.evaluator)
 
     def build_dataloader(self):
         train_dataloader = build_classifier_train_dataloader(self.cfg)
