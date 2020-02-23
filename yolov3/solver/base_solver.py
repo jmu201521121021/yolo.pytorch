@@ -16,32 +16,7 @@ class BaseSolver(metaclass=ABCMeta):
 
     def __init__(self, cfg):
         super().__init__()
-
-        #init
-        # self.cfg = cfg
-        # self.model_name        = cfg.SOLVER.MODEL_NAME
-        # self.save_model_freq   = cfg.SOLVER.SAVE_MODEL_FREQ
-        # self.save_model_dir    = cfg.SOLVER.SAVE_MODEL_DIR
-        # self.start_epoch       = cfg.SOLVER.START_EPOCH
-        # self.max_epoch         = cfg.SOLVER.MAX_EPOCH
-        # self.print_log_freq    = cfg.SOLVER.PRINT_LOG_FREQ
-        # self.test_freq         = cfg.SOLVER.TEST_FREQ
-        # self.lr                = cfg.SOLVER.LR
-        # self.decay_epoch       = cfg.SOLVER.DECAY_EPOCH
-        #
-        # input_shape =  ShapeSpec(channels=cfg.MODEL.PIXEL_MEAN )
-        # self.model = build_model(cfg, input_shape)
-        # self.optimizer = torch.optim.SGD(self.model.parameters(),
-        #                                  self.lr,
-        #                                  momentum=self.cfg.SOLVER.MOMENTUM,
-        #                                  weight_decay=self.cfg.SOLVER.WEIGHT_DECAY)
-        # # tensorboard
-        # self.tensorbord_write = TensorBoardWriter(log_dir=self.cfg.LOG.TENSORBOARD_LOG_DIR)
-        # # logger
-        # self.logger = logging.getLogger("yolov3")
-        # if not self.logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
-        #     setup_logger(output=self.cfg.LOG.LOG_DIR)
-
+        self.cfg = cfg
 
     @abstractclassmethod
     def train(self):

@@ -70,7 +70,7 @@ class TrainDarknet53Solver(BaseSolver):
                 total_iter += 1
                 output = self.model(img)
                 loss = self.criterion(output["linear"], target)
-        
+
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
