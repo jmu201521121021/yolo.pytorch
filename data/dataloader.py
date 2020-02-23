@@ -27,7 +27,7 @@ def build_classifier_train_dataloader(cfg):
         an instance ; torch.utils.data.DataLoader
     """
     dataset = build_dataset(cfg, training=True)
-    logger = logging.getLogger("yolov3")
+    logger = logging.getLogger(__name__)
     if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
         logger = setup_logger(output=cfg.LOG.LOG_DIR)
 
@@ -52,7 +52,7 @@ def build_classifier_test_dataloader(cfg):
     """
     dataset = build_dataset(cfg, training=False)
 
-    logger = logging.getLogger("yolov3")
+    logger = logging.getLogger(__name__)
     if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
         logger = setup_logger(output=cfg.LOG.LOG_DIR)
     logger.info("classifier dataset number of test : {}".format(len(dataset)))
@@ -73,7 +73,7 @@ def build_detect_train_dataloader(cfg):
         an instance ; torch.utils.data.DataLoader
     """
     dataset = build_dataset(cfg, training=True)
-    logger = logging.getLogger("yolov3")
+    logger = logging.getLogger(__name__)
     if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
         logger = setup_logger(output=cfg.LOG.LOG_DIR)
 
@@ -98,7 +98,7 @@ def build_detect_test_dataloader(cfg):
         an instance ; torch.utils.data.DataLoader
     """
     dataset = build_dataset(cfg, training=False)
-    logger = logging.getLogger("yolov3")
+    logger = logging.getLogger(__name__)
     if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
         logger = setup_logger(output=cfg.LOG.LOG_DIR)
 
