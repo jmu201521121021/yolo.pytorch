@@ -6,6 +6,8 @@ def get_default_config():
     CFG.DATASET = edict()
     #dataloader
     CFG.DATALOADER = edict()
+    #log
+    CFG.LOG = edict()
     # solver
     CFG.SOLVER =edict()
     # model
@@ -17,9 +19,32 @@ def get_default_config():
     # YOLOV3
     CFG.MODEL.YOLOV3 = edict()
 
+    #log
+    CFG.LOG.TENSORBOARD_LOG_DIR = "./log_output/LOG_TENSORBOaRD"
+    CFG.LOG.LOG_DIR = "./log_output/"
+
     #SOLVER
+    CFG.SOLVER.MODEL_NAME = "yolov3"
     CFG.SOLVER.IMS_PER_BATCH = 1
     CFG.SOLVER.BATCH_SIZE = 2
+    #OPTIMIZER
+    CFG.SOLVER.LR  = 0.001
+    CFG.SOLVER.MOMENTUM = 0.9
+    CFG.SOLVER.WEIGHT_DECAY = 0.0005
+    CFG.SOLVER.DECAY_EPOCH = 30
+
+    #GPU
+    CFG.SOLVER.GPU_IDS = ""
+
+    CFG.SOLVER.START_EPOCH = 1
+    CFG.SOLVER.MAX_EPOCH = 100
+
+    CFG.SOLVER.SAVE_MODEL_FREQ = 1
+    CFG.SOLVER.SAVE_MODEL_DIR = "./model_zoo"
+    CFG.SOLVER.PRINT_LOG_FREQ =200
+    CFG.SOLVER.PRETRAINED = ""
+    CFG.SOLVER.TEST_FREQ = 1
+
 
     #dataset
     CFG.DATASET.DATASET_NAME = "imagenet"

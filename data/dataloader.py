@@ -1,12 +1,15 @@
 
 import os
 import torch
+import  logging
 import random
 import logging
 import numpy as np
 import torch
 import  datetime
 from  data.dataset.build import build_dataset
+from yolov3.utils.logger import setup_logger
+
 import torch.utils.data as data
 
 __all__ = ["build_classifier_train_dataloader",
@@ -24,6 +27,11 @@ def build_classifier_train_dataloader(cfg):
         an instance ; torch.utils.data.DataLoader
     """
     dataset = build_dataset(cfg, training=True)
+    logger = logging.getLogger("yolov3")
+    if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
+        logger = setup_logger(output=cfg.LOG.LOG_DIR)
+
+    logger.info("classifier dataset number of train : {}".format(len(dataset)))
     dataloader = data.DataLoader(dataset,
                                  shuffle=True,
                                  num_workers=cfg.DATALOADER.NUM_WORKERS,
@@ -43,6 +51,11 @@ def build_classifier_test_dataloader(cfg):
 
     """
     dataset = build_dataset(cfg, training=False)
+
+    logger = logging.getLogger("yolov3")
+    if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
+        logger = setup_logger(output=cfg.LOG.LOG_DIR)
+    logger.info("classifier dataset number of test : {}".format(len(dataset)))
     dataloader = data.DataLoader(dataset,
                                  shuffle=True,
                                  num_workers=cfg.DATALOADER.NUM_WORKERS,
@@ -60,6 +73,11 @@ def build_detect_train_dataloader(cfg):
         an instance ; torch.utils.data.DataLoader
     """
     dataset = build_dataset(cfg, training=True)
+    logger = logging.getLogger("yolov3")
+    if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
+        logger = setup_logger(output=cfg.LOG.LOG_DIR)
+
+    logger.info("detector dataset number of train : {}".format(len(dataset)))
     dataloader = data.DataLoader(dataset,
                                  shuffle=True,
                                  num_workers=cfg.DATALOADER.NUM_WORKERS,
@@ -80,6 +98,11 @@ def build_detect_test_dataloader(cfg):
         an instance ; torch.utils.data.DataLoader
     """
     dataset = build_dataset(cfg, training=False)
+    logger = logging.getLogger("yolov3")
+    if not logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
+        logger = setup_logger(output=cfg.LOG.LOG_DIR)
+
+    logger.info("detector dataset number of test : {}".format(len(dataset)))
     dataloader = data.DataLoader(dataset,
                                  shuffle=True,
                                  num_workers=cfg.DATALOADER.NUM_WORKERS,
