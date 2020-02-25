@@ -28,7 +28,6 @@ class ReadImage(object):
     """read image"""
     def __call__(self, sample):
         if 'image' not in sample:
-            print(sample['image_path'])
             sample['image'] = cv2.imread(sample['image_path'])
         return sample
 
