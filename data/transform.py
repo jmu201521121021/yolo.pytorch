@@ -5,7 +5,7 @@ import torch
 import numbers
 import collections
 
-import transform_func as F
+import data.transform_func as F
 
 class Compose(object):
     """Composes several transforms together.
