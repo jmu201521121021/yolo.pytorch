@@ -1,6 +1,8 @@
 from __future__ import division
 import cv2
 import numpy as np
+from PIL import Image
+import math
 
 def _is_numpy_image(img):
     return isinstance(img, np.ndarray) and (img.ndim in {2, 3})
@@ -88,3 +90,63 @@ def adjust_hue(img, hue_factor):
 
     im = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB_FULL)
     return im.astype(img.dtype)
+
+def gaussian_noise(image: np.ndarray, mean, std):
+    imagetype = image.dtype
+    gauss = np.random.normal(mean, std, image.shape).astype(np.float32)
+    noisy = np.clip((1 + gauss) * image.astype(np.float32), 0, 255)
+    return noisy.astype(imagetype)
+
+def to_grayscale(img, num_output_channels=1):
+    """Convert image to grayscale version of image.
+    Args:
+        img (PIL Image): Image to be converted to grayscale.
+    Returns:
+        PIL Image:  Grayscale version of the image.
+                    if num_output_channels == 1 : returned image is single channel
+                    if num_output_channels == 3 : returned image is 3 channel with r == g == b
+    """
+    # if not _is_pil_image(img):
+    #     raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
+    if num_output_channels == 1:
+        img = img.convert('L')
+    elif num_output_channels == 3:
+        img = img.convert('L')
+        np_img = np.array(img, dtype=np.uint8)
+        np_img = np.dstack([np_img, np_img, np_img])
+        img = Image.fromarray(np_img, 'RGB')
+    else:
+        raise ValueError('num_output_channels should be either 1 or 3')
+    return img
+
+def rotate(img, angle, resample=False, expand=False, center=None):
+    """Rotate the image by angle.
+    Args:
+        img (CV2 Image): CV2 Image to be rotated.
+        angle ({float, int}): In degrees degrees counter clockwise order.
+        resample ({PIL.Image.NEAREST, PIL.Image.BILINEAR, PIL.Image.BICUBIC}, optional):
+            An optional resampling filter.
+            See http://pillow.readthedocs.io/en/3.4.x/handbook/concepts.html#filters
+            If omitted, or if the image has mode "1" or "P", it is set to PIL.Image.NEAREST.
+        expand (bool, optional): Optional expansion flag.
+            If true, expands the output image to make it large enough to hold the entire rotated image.
+            If false or omitted, make the output image the same size as the input image.
+            Note that the expand flag assumes rotation around the center and no translation.
+        center (2-tuple, optional): Optional center of rotation.
+            Origin is the upper left corner.
+            Default is the center of the image.
+    """
+
+    if not _is_numpy_image(img):
+        raise TypeError('img should be nparray Image. Got {}'.format(type(img)))
+
+    if center == None:
+        h, w = img.shape[:2]
+        center = (w // 2, h // 2)
+    if expand == True:
+        ratio = math.sin(2 * math.pi * angle / 360) * w / h + math.cos(2 * math.pi * angle / 360)
+    else:
+        ratio = 1
+    M = cv2.getRotationMatrix2D(center, angle, ratio)
+
+    return cv2.warpAffine(img, M, (h, w))
