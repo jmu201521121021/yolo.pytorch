@@ -495,4 +495,3 @@ if __name__ == '__main__':
     sample = {'image': img, 'label': None}
     # new_sample = norm1(sample)
 
-
