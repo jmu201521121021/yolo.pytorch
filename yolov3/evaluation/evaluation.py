@@ -99,7 +99,6 @@ def inference_on_dataset(model, data_loader, evaluator):
     Returns:
         The return value of `evaluator.evaluate()`
     """
-    num_devices = torch.distributed.get_world_size() if torch.distributed.is_initialized() else 1
     logger = logging.getLogger(__name__)
     logger.info("Start inference on {} images".format(len(data_loader)))
 
@@ -119,11 +118,15 @@ def inference_on_dataset(model, data_loader, evaluator):
                 total_compute_time = 0
 
             start_compute_time = time.perf_counter()
-            outputs = model(inputs)
-            if torch.cuda.is_available():
-                torch.cuda.synchronize()
+            target  = dict()
+            image = inputs["image"]
+            if "label" in inputs:
+                target["label"] = inputs["label"]
+            if "boxes" in inputs:
+                target["boxes"] = inputs["boxes"]
+            outputs = model(image)
             total_compute_time += time.perf_counter() - start_compute_time
-            evaluator.process(inputs, outputs)
+            evaluator.process(target, outputs)
 
             iters_after_start = idx + 1 - num_warmup * int(idx >= num_warmup)
             seconds_per_img = total_compute_time / iters_after_start
@@ -143,14 +146,14 @@ def inference_on_dataset(model, data_loader, evaluator):
     total_time_str = str(datetime.timedelta(seconds=total_time))
     # NOTE this format is parsed by grep
     logger.info(
-        "Total inference time: {} ({:.6f} s / img per device, on {} devices)".format(
-            total_time_str, total_time / (total - num_warmup), num_devices
+        "Total inference time: {} ({:.6f} s / img per device)".format(
+            total_time_str, total_time / (total - num_warmup)
         )
     )
     total_compute_time_str = str(datetime.timedelta(seconds=int(total_compute_time)))
     logger.info(
-        "Total inference pure compute time: {} ({:.6f} s / img per device, on {} devices)".format(
-            total_compute_time_str, total_compute_time / (total - num_warmup), num_devices
+        "Total inference pure compute time: {} ({:.6f} s / img per device)".format(
+            total_compute_time_str, total_compute_time / (total - num_warmup)
         )
     )
 

@@ -159,6 +159,8 @@ class CommonMetricPrinter(EventWriter):
     def write(self):
         storage = get_event_storage()
         iteration = storage.iter
+        latest_scalar = storage.latest()
+
 
         data_time, time = None, None
         eta_string = "N/A"
@@ -170,39 +172,51 @@ class CommonMetricPrinter(EventWriter):
             eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
         except KeyError:  # they may not exist in the first few iterations (due to warmup)
             pass
-
-        try:
-            lr = "{:.6f}".format(storage.history("lr").latest())
-        except KeyError:
-            lr = "N/A"
-
-        if torch.cuda.is_available():
-            max_mem_mb = torch.cuda.max_memory_allocated() / 1024.0 / 1024.0
+        # test
+        if "top1" in latest_scalar or "top5" in latest_scalar:
+            self.logger.info(
+        """\
+         Evaluating Accuracy iter: {iter}  Acc@1  {top1}  \
+         Acc@5 {top5}\
+        """.format(iter=iteration, top1=latest_scalar["top1"], top5=latest_scalar["top5"]))
         else:
-            max_mem_mb = None
+            try:
+                lr = "{:.6f}".format(storage.history("lr").latest())
+            except KeyError:
+                lr = "N/A"
 
-        # NOTE: max_mem is parsed by grep in "dev/parse_results.sh"
-        self.logger.info(
-            """\
-eta: {eta}  iter: {iter}  {losses}  \
-{time}  {data_time}  \
-lr: {lr}  {memory}\
-""".format(
-                eta=eta_string,
-                iter=iteration,
-                losses="  ".join(
-                    [
+            if torch.cuda.is_available():
+                max_mem_mb = torch.cuda.max_memory_allocated() / 1024.0 / 1024.0
+            else:
+                max_mem_mb = None
+
+            # NOTE: max_mem is parsed by grep in "dev/parse_results.sh"
+            self.logger.info(
+                """\
+    eta: {eta}  iter: {iter}  {losses} {accuracy} \
+    {time}  {data_time}  \
+    lr: {lr}  {memory}\
+    """.format(
+                    eta=eta_string,
+                    iter=iteration,
+                    losses="  ".join(
+                        [
+                            "{}: {:.3f}".format(k, v.median(20))
+                            for k, v in storage.histories().items()
+                            if "loss" in k
+                        ]
+                    ),
+                    accuracy=" ".join([
                         "{}: {:.3f}".format(k, v.median(20))
                         for k, v in storage.histories().items()
-                        if "loss" in k
-                    ]
-                ),
-                time="time: {:.4f}".format(time) if time is not None else "",
-                data_time="data_time: {:.4f}".format(data_time) if data_time is not None else "",
-                lr=lr,
-                memory="max_mem: {:.0f}M".format(max_mem_mb) if max_mem_mb is not None else "",
+                        if "train_top" in k
+                    ]),
+                    time="time: {:.4f}".format(time) if time is not None else "",
+                    data_time="data_time: {:.4f}".format(data_time) if data_time is not None else "",
+                    lr=lr,
+                    memory="max_mem: {:.0f}M".format(max_mem_mb) if max_mem_mb is not None else "",
+                )
             )
-        )
 
 
 class EventStorage:
@@ -337,6 +351,8 @@ class EventStorage:
         correct iteration number.
         """
         self._iter += 1
+        self._latest_scalars = {}
+    def test_step(self):
         self._latest_scalars = {}
 
     @property

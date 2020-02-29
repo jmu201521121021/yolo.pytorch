@@ -18,7 +18,8 @@ class TrainDarknet53Solver(BaseSolver):
     def __init__(self, cfg):
         super().__init__(cfg)
         self.cfg = cfg
-        self.model_name       = cfg.SOLVER.MODEL_NAME
+        self.backbone_name    =cfg.MODEL.BACKBONE.NAME
+        self.model_name       =self.backbone_name
         self.batch_size       = cfg.SOLVER.BATCH_SIZE
         self.save_model_freq  = cfg.SOLVER.SAVE_MODEL_FREQ
         self.save_model_dir   = cfg.SOLVER.SAVE_MODEL_DIR
@@ -27,14 +28,15 @@ class TrainDarknet53Solver(BaseSolver):
 
         self.print_log_freq   = cfg.SOLVER.PRINT_LOG_FREQ
         self.test_freq        = cfg.SOLVER.TEST_FREQ
+        self.train_freq        = cfg.SOLVER.TRAIN_VIS_ITER_FREQ
         self.lr               = cfg.SOLVER.LR
         self.decay_epoch      = cfg.SOLVER.DECAY_EPOCH
         self.gpu_ids          = cfg.SOLVER.GPU_IDS
         self.pretrained       = cfg.SOLVER.PRETRAINED
 
-        self.cfg.DATASET.DATA_ROOT = "E:\workspaces\YOLO_PYTORCH\dataset\imagenet"
-        self.cfg.DATASET.DATASET_NAME = "BuildImageNetDataset"
-        self.cfg.MODEL.DARKNETS.NUM_CLASSES = 1000
+        # self.cfg.DATASET.DATA_ROOT = "E:\workspaces\YOLO_PYTORCH\dataset\imagenet"
+        # self.cfg.DATASET.DATASET_NAME = "BuildImageNetDataset"
+        # self.cfg.MODEL.DARKNETS.NUM_CLASSES = 1000
 
         self.dataset_name = self.cfg.DATASET.DATASET_NAME
         # evaluation
@@ -58,7 +60,7 @@ class TrainDarknet53Solver(BaseSolver):
         if not self.logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
             self.logger = setup_logger(output=self.cfg.LOG.LOG_DIR)
         # loss
-        self.logger.info("start train {}".format(self.model_name))
+        self.logger.info("start train {}".format(self))
         self.criterion = torch.nn.CrossEntropyLoss().to(self.device)
 
     def train(self):
@@ -116,6 +118,9 @@ class TrainDarknet53Solver(BaseSolver):
         output = self.model(img)
         loss = self.criterion(output["linear"], target)
 
+        accuracy, pred = self.evaluator.process_single_batches(target, output["linear"], topk=(1, 5))
+        metrics_dict["train_top1"] = accuracy["top1"]
+        metrics_dict["train_top5"] = accuracy["top5"]
         metrics_dict["data_time"] = end_time
         metrics_dict["loss"] = loss
 
@@ -135,8 +140,11 @@ class TrainDarknet53Solver(BaseSolver):
         self.storage.step()
 
     def test(self):
-        pass
-        # results = inference_on_dataset(self.model,self._test_dataloader, self.evaluator)
+        self.evaluator.reset()
+        accuracy = inference_on_dataset(self.model,self._test_dataloader, self.evaluator)
+        self._write_metrics(accuracy)
+        self.writers_write()
+        self.storage.test_step()
 
     def build_dataloader(self):
         train_dataloader = build_classifier_train_dataloader(self.cfg)
