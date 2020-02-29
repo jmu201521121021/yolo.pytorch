@@ -34,10 +34,6 @@ class TrainDarknet53Solver(BaseSolver):
         self.gpu_ids          = cfg.SOLVER.GPU_IDS
         self.pretrained       = cfg.SOLVER.PRETRAINED
 
-        # self.cfg.DATASET.DATA_ROOT = "E:\workspaces\YOLO_PYTORCH\dataset\imagenet"
-        # self.cfg.DATASET.DATASET_NAME = "BuildImageNetDataset"
-        # self.cfg.MODEL.DARKNETS.NUM_CLASSES = 1000
-
         self.dataset_name = self.cfg.DATASET.DATASET_NAME
         # evaluation
         self.evaluator = ImagenetEvaluator(self.dataset_name)
@@ -53,10 +49,8 @@ class TrainDarknet53Solver(BaseSolver):
                                          self.lr,
                                          momentum=self.cfg.SOLVER.MOMENTUM,
                                          weight_decay=self.cfg.SOLVER.WEIGHT_DECAY)
-        # tensorboard
-        # self.tensorbord_write = TensorBoardWriter(log_dir=self.cfg.LOG.TENSORBOARD_LOG_DIR)
         # logger
-        self.logger = logging.getLogger("yolov3")
+        self.logger = logging.getLogger("darknet53")
         if not self.logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
             self.logger = setup_logger(output=self.cfg.LOG.LOG_DIR)
         # loss
