@@ -23,7 +23,7 @@ setup(
     url="https://github.com/jmu2015211211021/yolo.pytorch",
     description="yolov3 base pytorch "
     "platform for object detection .",
-    packages=find_packages(exclude=("yolov3", "darknet", "data")),
+    packages=find_packages(exclude=("yolov3", "darknet", "data", "tests", "visualize")),
     python_requires=">=3.6",
     install_requires=[
         "termcolor>=1.1",

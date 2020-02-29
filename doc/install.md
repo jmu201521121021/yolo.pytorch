@@ -3,9 +3,11 @@
     ```shell
     pip install -U 'git+https://github.com/facebookresearch/fvcore'
     ```
-- run setup.py, open $root_dir/$
+- run setup.py, open $project_root/$
   ```shell
     pip install -e.
+    or
+    pip install -e .
   ```
 ## Common Installation Issues
 

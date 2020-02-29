@@ -1,7 +1,11 @@
 import torch
 import os
 import numpy as np
-import torch.utils.data as data
+
+from data.dataset.base_dataset import BaseDataset
+from data.dataset.build import DATASET_REGISTRY
+
+__all__ = ["BuildImageNetDataset"]
 
 def get_image_list(data_root, is_train):
     """
@@ -36,16 +40,21 @@ def get_image_list(data_root, is_train):
             })
     return img_lists
 
-class ImageNetDataset(data.Dataset):
-    def __init__(self, data_root, transform, is_train=True):
-        self.items = get_image_list(data_root, is_train)
-        self.transform = transform
+@DATASET_REGISTRY.register()
+class BuildImageNetDataset(BaseDataset):
 
-    def __getitem__(self, index):
-        item = self.items[index]
-        if self.transform is not None:
-            item = self.transform(item)
-        return item
+    def __init__(self, cfg, training=True):
+        super(BuildImageNetDataset, self).__init__(cfg, training)
+        self.items = get_image_list(cfg.DATASET.DATA_ROOT, training)
 
-    def __len__(self):
-        return len(self.items)
+
+if __name__  == "__main__":
+    from yolov3.configs.default import get_default_config
+    cfg = get_default_config()
+    cfg.DATASET.DATA_ROOT = "E:\workspaces\YOLO_PYTORCH\dataset\imagenet"
+    dataset = BuildImageNetDataset(cfg, training=False)
+    for data in dataset:
+        print(data)
+
+
+
