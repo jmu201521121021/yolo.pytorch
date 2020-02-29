@@ -118,7 +118,7 @@ class Scale(ResizeImage):
         super(Scale, self).__init__(*args, **kwargs)
 
 class CenterCrop(object):
-    """Crops the given PIL Image at the center.
+    """Crops the given CV Image at the center.
     Args:
         size (sequence or int): Desired output size of the crop. If size is an
             int instead of sequence like (h, w), a square crop (size, size) is
@@ -140,7 +140,7 @@ class CenterCrop(object):
         return sample
 
 class Pad(object):
-    """Pad the given PIL Image on all sides with the given "pad" value.
+    """Pad the given CV Image on all sides with the given "pad" value.
     Args:
         padding (int or tuple): Padding on each border. If a single int is provided this
             is used to pad all borders. If tuple of length 2 is provided this is the padding
@@ -200,7 +200,7 @@ class Pad(object):
         return sample
 
 class RandomCrop(object):
-    """Crop the given PIL Image at a random location.
+    """Crop the given CV Image at a random location.
     Args:
         size (sequence or int): Desired output size of the crop. If size is an
             int instead of sequence like (h, w), a square crop (size, size) is
@@ -248,7 +248,7 @@ class RandomCrop(object):
         return sample
 
 class RandomHorizontalFlip(object):
-    """Horizontally flip the given PIL Image randomly with a given probability.
+    """Horizontally flip the given CV Image randomly with a given probability.
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
     """
@@ -263,7 +263,7 @@ class RandomHorizontalFlip(object):
         return sample
 
 class RandomVerticalFlip(object):
-    """Vertically flip the given PIL Image randomly with a given probability.
+    """Vertically flip the given CV Image randomly with a given probability.
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
     """
@@ -407,10 +407,9 @@ class RandomGrayscale(object):
             np.ndarray: Randomly grayscaled image.
         """
         image = sample['image']
-        num_output_channels = 3
 
         if random.random() < self.p:
-            new_image = F.to_grayscale(image, num_output_channels=num_output_channels)
+            new_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             sample['image'] = new_image
         return sample
 
@@ -427,7 +426,6 @@ class RandomRotation(object):
             will be (-degrees, +degrees) clockwise order.
         resample ({CV.Image.NEAREST, CV.Image.BILINEAR, CV.Image.BICUBIC}, optional):
             An optional resampling filter.
-            See http://pillow.readthedocs.io/en/3.4.x/handbook/concepts.html#filters
             If omitted, or if the image has mode "1" or "P", it is set to NEAREST.
         expand (bool, optional): Optional expansion flag.
             If true, expands the output to make it large enough to hold the entire rotated image.
@@ -485,14 +483,17 @@ class RandomRotation(object):
 
 
 if __name__ == '__main__':
-    norm1 = Normalize(mean=0, std=2)
-    image_arr = cv2.imread('1.jpg', cv2.IMREAD_COLOR)
-    cv2.imshow("image", image_arr)
+    norm1 = RandomGrayscale(40)
+    image_arr = cv2.imread('1.jpeg', cv2.IMREAD_COLOR)
+    # cv2.imshow("image", image_arr)
+    # img = cv2.resize(image_arr, (200, 200))
+    # print(image_arr.shape)
+    # print(img.shape)
+    # cv2.imshow("image", img)
+    sample = {'image': image_arr, 'label': None}
+    new_sample = norm1(sample)
+    cv2.imshow("image", new_sample['image'])
     cv2.waitKey(0)
-    img = cv2.resize(image_arr, (200, 200))
-    print(image_arr.shape)
-    print(img.shape)
-    sample = {'image': img, 'label': None}
-    # new_sample = norm1(sample)
-
+    cv2.imshow("image", sample['image'])
+    cv2.waitKey(0)
 
