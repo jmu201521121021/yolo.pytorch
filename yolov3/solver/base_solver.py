@@ -72,7 +72,7 @@ class BaseSolver(metaclass=ABCMeta):
         print("The number of parameters: {}".format(num_params))
 
     def save_model(self, epoch):
-        torch.save(self.model.state_dict(), os.path.join(self.save_model_dir, self.model_name + "_{}.pth".format(epoch)))
+        torch.save(self.model.state_dict(), os.path.join(self.save_model_dir, self.model_name + "_epoch_{}.pth".format(epoch)))
 
     def adjust_learning_rate(self, epoch):
         """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
