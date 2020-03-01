@@ -129,6 +129,19 @@ class BaseSolver(metaclass=ABCMeta):
         if len(metrics_dict) > 1:
             self.storage.put_scalars(**metrics_dict)
 
+    def _write_test_metrics(self, metrics_dict: dict):
+        """
+        Args:
+            metrics_dict (dict): dict of scalar metrics
+        """
+        metrics_dict = {
+            k: v.detach().cpu().item() if isinstance(v, torch.Tensor) else float(v)
+            for k, v in metrics_dict.items()
+        }
+        # gather metrics among all workers for logging
+        if len(metrics_dict) > 1:
+            self.storage.put_scalars(**metrics_dict)
+
     def writers_write(self):
         for writer in self._writers:
             writer.write()
