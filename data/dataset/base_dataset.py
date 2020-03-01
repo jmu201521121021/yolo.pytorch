@@ -1,7 +1,7 @@
 
 import  torch.utils.data as data
 from  data.transform import *
-
+import copy
 __all__ = ["BaseDataset"]
 
 class BaseDataset(data.Dataset):
@@ -15,10 +15,15 @@ class BaseDataset(data.Dataset):
         for transform_name in transform_list:
             transform.append(eval(transform_name))
         self.transform = Compose(transform)
+        self.training = training
+        self.items = None
 
+
+    def setItems(self, cfg):
+        raise  NotImplemented
 
     def __getitem__(self, index):
-        item = self.items[index]
+        item = copy.deepcopy(self.items[index])
         if self.transform is not None:
             item = self.transform(item)
         return item

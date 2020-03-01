@@ -8,4 +8,8 @@ class BuildCocoDataset(BaseDataset):
     def __init__(self, cfg, traning=True):
         super(BuildCocoDataset, self).__init__(cfg, traning)
         # TODO: read coco dataset
+        self.setItems(cfg)
+
+    def setItems(self, cfg):
         self.items = None
+
