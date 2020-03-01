@@ -72,7 +72,7 @@ class BaseSolver(metaclass=ABCMeta):
         print("The number of parameters: {}".format(num_params))
 
     def save_model(self, epoch):
-        torch.save(self.model.state_dict(), os.path.join(self.save_model_dir, self.model_name + "_{}.pth".format(epoch)))
+        torch.save(self.model.state_dict(), os.path.join(self.save_model_dir, self.model_name + "_epoch_{}.pth".format(epoch)))
 
     def adjust_learning_rate(self, epoch):
         """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -126,6 +126,19 @@ class BaseSolver(metaclass=ABCMeta):
 
         total_losses_reduced = sum(loss for loss in metrics_dict.values())
         self.storage.put_scalar("total_loss", total_losses_reduced)
+        if len(metrics_dict) > 1:
+            self.storage.put_scalars(**metrics_dict)
+
+    def _write_test_metrics(self, metrics_dict: dict):
+        """
+        Args:
+            metrics_dict (dict): dict of scalar metrics
+        """
+        metrics_dict = {
+            k: v.detach().cpu().item() if isinstance(v, torch.Tensor) else float(v)
+            for k, v in metrics_dict.items()
+        }
+        # gather metrics among all workers for logging
         if len(metrics_dict) > 1:
             self.storage.put_scalars(**metrics_dict)
 

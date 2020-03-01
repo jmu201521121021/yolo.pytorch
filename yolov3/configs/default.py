@@ -44,13 +44,14 @@ def get_default_config():
     CFG.SOLVER.PRINT_LOG_FREQ =1
     CFG.SOLVER.PRETRAINED = ""
     CFG.SOLVER.TEST_FREQ = 1
-
+    CFG.SOLVER.TRAIN_VIS_ITER_FREQ = 3
 
     #dataset
     CFG.DATASET.DATASET_NAME = "imagenet"
     CFG.DATASET.TRAIN_TRANSFORM = ["ReadImage()","ResizeImage(256, 256)","ToTensor()"]
     CFG.DATASET.TEST_TRANSFORM = ["ReadImage()", "ResizeImage(256, 256)", "ToTensor()"]
     CFG.DATASET.DATA_ROOT = ""
+    CFG.DATASET.NUM_CLASSES = 1000
     #dataloader
     CFG.DATALOADER.NUM_WORKERS = 8 # thead number of dataloader
 

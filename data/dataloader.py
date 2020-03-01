@@ -60,7 +60,7 @@ def build_classifier_test_dataloader(cfg):
                                  shuffle=True,
                                  num_workers=cfg.DATALOADER.NUM_WORKERS,
                                  drop_last=True,
-                                 batch_size=cfg.SOLVER.BATCH_SIZE,
+                                 batch_size=1,
                                  )
     return  dataloader
 

@@ -5,7 +5,7 @@ import torch
 import numbers
 import collections
 
-import transform_func as F
+import data.function as F
 
 class Compose(object):
     """Composes several transforms together.
@@ -66,14 +66,23 @@ class ToTensor(object):
         image = image.transpose((2, 0, 1))
         return {'image': torch.from_numpy(image).float(),
                 'label': torch.from_numpy(label).long()}
+class TensorToNumpy(object):
+    """Convert Tensors in sample to ndarray."""
+    def __call__(self, sample):
+        image = sample["image"]
+        isinstance(type(image), torch.Tensor), "format is not support {}".format(type(image))
+        image = image.permute(1,2, 0).numpy()
+        sample["image"] = image.astype(np.uint8)
+
+        return sample
 
 class RandomFlip(object):
     """Randomly flip the input image with a probability of 0.5."""
-    def __init__(self, flag=0.5):
-        self.flag = flag
+    def __init__(self, probability=0.5):
+        self.probability = probability
 
     def __call__(self, sample):
-        if random.uniform(0.0, 1.0) > self.flag:
+        if random.uniform(0.0, 1.0) <= self.probability:
             image = sample['image']
             image = cv2.flip(image, random.randint(0, 1))
             sample['image'] = image
@@ -97,7 +106,7 @@ class Normalize(object):
         """
         image = sample["image"] 
         if self.mean is None or self.std is None: 
-            image.div_(255) 
+            image.div_(255.0)
         else:
             image.sub_(self.mean).div_(self.std)
             sample["image"] = image
@@ -106,22 +115,16 @@ class Normalize(object):
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
-class Scale(ResizeImage):
-    """
-    Note: This transform is deprecated in favor of Resize.
-    """
-    def __init__(self, *args, **kwargs):
-        super(Scale, self).__init__(*args, **kwargs)
 
 class CenterCrop(object):
-    """Crops the given PIL Image at the center.
+    """Crops the given CV Image at the center.
     Args:
         size (sequence or int): Desired output size of the crop. If size is an
             int instead of sequence like (h, w), a square crop (size, size) is
             made.
     """
-    def __init__(self, output_size):
-        if isinstance(output_size, numbers.Number):
+    def __init__(self, output_size=256):
+        if isinstance(output_size, int):
             self.output_size = (int(output_size), int(output_size))
         else:
             self.output_size = output_size
@@ -130,13 +133,13 @@ class CenterCrop(object):
         image = sample['image']
         h, w = image.shape[:2]
         th, tw = self.output_size
-        i = int(round(h-th / 2.))
-        j = int(round(w-tw / 2.))
+        i = int(round(h-th) / 2.)
+        j = int(round(w-tw )/ 2.)
         sample['image'] = image[i:i+th, j:j+tw]
         return sample
 
 class Pad(object):
-    """Pad the given PIL Image on all sides with the given "pad" value.
+    """Pad the given CV Image on all sides with the given "pad" value.
     Args:
         padding (int or tuple): Padding on each border. If a single int is provided this
             is used to pad all borders. If tuple of length 2 is provided this is the padding
@@ -196,7 +199,7 @@ class Pad(object):
         return sample
 
 class RandomCrop(object):
-    """Crop the given PIL Image at a random location.
+    """Crop the given CV Image at a random location.
     Args:
         size (sequence or int): Desired output size of the crop. If size is an
             int instead of sequence like (h, w), a square crop (size, size) is
@@ -244,7 +247,7 @@ class RandomCrop(object):
         return sample
 
 class RandomHorizontalFlip(object):
-    """Horizontally flip the given PIL Image randomly with a given probability.
+    """Horizontally flip the given CV Image randomly with a given probability.
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
     """
@@ -259,7 +262,7 @@ class RandomHorizontalFlip(object):
         return sample
 
 class RandomVerticalFlip(object):
-    """Vertically flip the given PIL Image randomly with a given probability.
+    """Vertically flip the given CV Image randomly with a given probability.
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
     """
@@ -285,69 +288,256 @@ class Lambda(object):
     def __call__(self, image):
         return self.lambd(image)
 
-class ColorJitter(object):
-    """Randomly change the brightness, contrast and saturation of an image.
-    Args:
-        brightness (float): How much to jitter brightness. brightness_factor
-            is chosen uniformly from [max(0, 1 - brightness), 1 + brightness].
-        contrast (float): How much to jitter contrast. contrast_factor
-            is chosen uniformly from [max(0, 1 - contrast), 1 + contrast].
-        saturation (float): How much to jitter saturation. saturation_factor
-            is chosen uniformly from [max(0, 1 - saturation), 1 + saturation].
-        hue(float): How much to jitter hue. hue_factor is chosen uniformly from
-            [-hue, hue]. Should be >=0 and <= 0.5.
-    """
-    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
-        self.brightness = brightness
-        self.contrast = contrast
-        self.saturation = saturation
-        self.hue = hue
 
-    @staticmethod
-    def get_params(brightness, contrast, saturation, hue):
-        """Get a randomized transform to be applied on image.
-        Arguments are same as that of __init__.
-        Returns:
-            Transform which randomly adjusts brightness, contrast and
-            saturation in a random order.
-        """
-        transforms = []
-        if brightness > 0:
-            brightness_factor = random.uniform(max(0, 1 - brightness), 1 + brightness)
-            transforms.append(Lambda(lambda img: F.adjust_brightness(img, brightness_factor)))
-
-        if contrast > 0:
-            contrast_factor = random.uniform(max(0, 1 - contrast), 1 + contrast)
-            transforms.append(Lambda(lambda img: F.adjust_contrast(img, contrast_factor)))
-
-        if saturation > 0:
-            saturation_factor = random.uniform(max(0, 1 - saturation), 1 + saturation)
-            transforms.append(Lambda(lambda img: F.adjust_saturation(img, saturation_factor)))
-
-        if hue > 0:
-            hue_factor = random.uniform(-hue, hue)
-            transforms.append(Lambda(lambda img: F.adjust_hue(img, hue_factor)))
-
-        random.shuffle(transforms)
-        transform = Compose(transforms)
-        return transform
+class RandomSaturation(object):
+    def __init__(self, lower=0.5, upper=1.5, probability=0.5):
+        self.lower = lower
+        self.upper = upper
+        self.probability = probability
+        assert self.upper >= self.lower, "contrast upper must be >= lower."
+        assert self.lower >= 0, "contrast lower must be non-negative."
 
     def __call__(self, sample):
-        image = sample['image']
-        transform = self.get_params(self.brightness, self.contrast,
-                                    self.saturation, self.hue)
-        sample['image'] = transform(image)
+        image = sample["image"]
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        image = image.astype(np.float)
+
+        if random.uniform(0.0, 1.0) <= self.probability:
+            image[:, :, 1] *= random.uniform(self.lower, self.upper)
+
+        image = np.clip(image, 0, 255)
+        image = image.astype(np.uint8)
+
+        image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
+        sample["image"] = image
+        return  sample
+
+
+class RandomHue(object):
+    def __init__(self, delta=18.0, probability=0.5):
+        assert delta>=0.0 and delta<=360.0
+        self.delta = delta
+        self.probability = probability
+
+    def __call__(self, sample):
+        image = sample["image"]
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        image = image.astype(np.float)
+
+        if random.uniform(0.0, 1.0) <= self.probability:
+            image[:, :, 0] += random.uniform(-self.delta, self.delta)
+            image[:, :, 0][image[:, :, 0] > 360.0] -= 360.0
+            image[:, :, 0][image[:, :, 0] < 0.0] += 360.0
+
+        image = np.clip(image, 0, 255)
+        image = image.astype(np.uint8)
+
+        image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
+        sample["image"] = image
         return sample
 
 
+class RandomContrast(object):
+    def __init__(self, lower=0.5, upper=1.5, probability=0.5):
+        self.lower = lower
+        self.upper = upper
+        self.probability = probability
+        assert self.upper >= self.lower, "contrast upper must be >= lower."
+        assert self.lower >= 0, "contrast lower must be non-negative."
+
+    # expects float image
+    def __call__(self, sample):
+        image = sample["image"]
+        if random.uniform(0.0, 1.0) <= self.probability:
+            alpha = random.uniform(self.lower, self.upper)
+            image = image.astype(np.float)
+            image *= alpha
+            image = np.clip(image, 0, 255)
+            image = image.astype(np.uint8)
+            sample["image"] = image
+
+        return sample
+
+class RandomBrightness(object):
+    def __init__(self, delta=32, probability=0.5):
+        assert delta >= 0.0
+        assert delta <= 255.0
+        self.delta = delta
+        self.probability = probability
+
+    def __call__(self, sample):
+        image = sample["image"]
+        if random.uniform(0.0, 1.0) <= self.probability:
+            image = image.astype(np.float)
+            delta = random.uniform(-self.delta, self.delta)
+            image += delta
+            image = np.clip(image, 0, 255)
+            image = image.astype(np.uint8)
+
+        sample["image"] = image
+        return  sample
+
+class RandomBlur(object):
+    """
+    Random Blur Image
+    """
+    def __init__(self, probability=0.5):
+        self.probability = probability
+
+    def __call__(self, sample):
+        image = sample["image"]
+        if random.uniform(0.0, 1.0) <= self.probability:
+            blur_shift = random.randint(0,1)
+            if blur_shift == 0:
+                kernel = random.randint(1, 4)*2 + 1
+                image = cv2.blur(image, (kernel, kernel))
+            else:
+                kernel = random.randint(1, 4)*2 + 1
+                image = cv2.GaussianBlur(image, (kernel, kernel), kernel/2.0)
+        sample["image"] = image
+        return sample
+
+class RandomNoise(object):
+    """Applying gaussian noise on the given CV Image randomly with a given probability.
+        Guassion noise
+        Salt and pepper noise
+        Args:
+            probability (float): probability of the image being noised. Default value is 0.5
+        """
+
+    def __init__(self, probability=0.5):
+        self.probability =probability
+
+    def __call__(self, sample):
+        image = sample["image"]
+        if random.uniform(0.0, 1.0) <= self.probability:
+            noise_shift = random.randint(0, 1)
+            if noise_shift == 0:
+                noise = np.random.normal(0, random.uniform(0.001, 0.004) ** 0.5, image.shape)
+                image = noise*255 + image.astype(np.float)
+                image = np.clip(image, 0, 255).astype(np.uint8)
+
+            elif noise_shift == 1:
+                SNR = random.uniform(0.75, 0.95)
+                h, w, c = image.shape
+                mask = np.random.choice((0, 1, 2), size=(h, w, 1), p=[SNR, (1 - SNR) / 2., (1 - SNR) / 2.])
+                mask = np.repeat(mask, c, axis=2)
+                image[mask == 1] = 255
+                image[mask == 2] = 0
+
+        sample["image"] = image
+        return  sample
+
+class RandomGrayscale(object):
+    """Randomly convert image to grayscale with a probability of p (default 0.1).
+    Args:
+        p (float): probability that image should be converted to grayscale.
+    Returns:
+        CV Image: Grayscale version of the input image with probability p and unchanged
+        with probability (1-p).
+        - If input image is 1 channel: grayscale version is 1 channel
+        - If input image is 3 channel: grayscale version is 3 channel with r == g == b
+    """
+
+    def __init__(self, p=0.1):
+        self.p = p
+
+    def __call__(self, sample):
+        """
+        Args:
+            img (np.ndarray): Image to be converted to grayscale.
+        Returns:
+            np.ndarray: Randomly grayscaled image.
+        """
+        image = sample['image'].copy()
+
+        if random.random() < self.p:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        sample["image"] = image
+        return sample
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(p={0})'.format(self.p)
+
+
+
+class RandomRotation(object):
+    """Rotate the image by angle.
+    Args:
+        degrees_lower(int): lower degree
+        degrees_upper(inr): upper degree
+        probability(float): probability with rotation
+
+        resample ({cv2.NEAREST, cv2.BILINEAR,cv2.BICUBIC}, optional):
+            An optional resampling filter.
+            If omitted, or if the image has mode "1" or "P", it is set to NEAREST.
+        expand (bool, optional): Optional expansion flag.
+            If true, expands the output to make it large enough to hold the entire rotated image.
+            If false or omitted, make the output image the same size as the input image.
+            Note that the expand flag assumes rotation around the center and no translation.
+        center (2-tuple, optional): Optional center of rotation.
+            Origin is the upper left corner.
+            Default is the center of the image.
+    """
+
+    def __init__(self, degrees_lower=-30, degrees_uper=30, probability = 0.5, resample='BILINEAR', expand=False, center=None):
+        self.degrees_lower = degrees_lower
+        self.degrees_upepr = degrees_uper
+        self.probability = probability
+        self.resample = resample
+        self.expand = expand
+        self.center = center
+
+    def __call__(self, sample):
+
+        image = sample['image']
+        if random.uniform(0.0, 1.0) <= self.probability:
+            angle = random.randint(self.degrees_lower, self.degrees_upepr)
+            print(angle)
+            new_image = F.rotate(image, angle, self.resample, self.expand, self.center)
+            sample['image'] = new_image
+
+        return sample
+
+
+
 if __name__ == '__main__':
-    norm1 = Normalize(mean=0, std=2)
-    image_arr = cv2.imread('1.jpg', cv2.IMREAD_COLOR)
-    cv2.imshow("image", image_arr)
-    cv2.waitKey(0)
-    img = cv2.resize(image_arr, (200, 200))
-    print(image_arr.shape)
-    print(img.shape)
-    sample = {'image': img, 'label': None}
-    # new_sample = norm1(sample)
+    toTensor = ToTensor()
+    tensorToNumpy = TensorToNumpy()
+    resize = ResizeImage(width=256, height=256)
+    centerCrop = CenterCrop(output_size=512)
+    norm = Normalize()
+    noise = RandomNoise(1.0)
+    blur = RandomBlur(1.0)
+    hue = RandomHue(probability=1.0)
+    saturation = RandomSaturation(probability=1.0)
+    contrast = RandomContrast(probability=1.0)
+    brightness = RandomBrightness(probability=1.0)
+    rotao = RandomRotation(probability=1.0)
+    image_arr = cv2.imread("../../dataset/test_data/1.png")
+    sample = {'image': image_arr, 'label': np.array(1)}
+    import copy
+    new_sample = copy.deepcopy(sample)
+    new_sample = resize(new_sample)
+
+    #
+    # new_sample = centerCrop(new_sample)
+    # new_sample = norm1(new_sample)
+    # new_sample = noise(new_sample)
+    # new_sample = blur(new_sample)
+    # new_sample = saturation(new_sample)
+    # new_sample = hue(new_sample)
+    # new_sample = contrast(new_sample)
+    # new_sample = brightness(new_sample)
+    # new_sample = rotao(new_sample)
+
+    #### tensor to numpy each
+    # new_sample = toTensor(new_sample)
+    # new_sample = norm(new_sample)
+    # new_sample["image"] *= 255
+    # new_sample = tensorToNumpy(new_sample)
+
+    cv2.imshow("new_image", new_sample['image'])
+    cv2.imshow("image", sample['image'])
+    cv2.waitKey(-1)
 
