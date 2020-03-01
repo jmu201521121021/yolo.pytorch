@@ -102,6 +102,7 @@ class TrainDarknet53Solver(BaseSolver):
          Called  the  iteration.
         """
         metrics_dict = dict()
+        metrics_test_dict = dict()
         start_time = time.perf_counter()
         input_data = next(self._train_iter)
 
@@ -113,12 +114,16 @@ class TrainDarknet53Solver(BaseSolver):
         loss = self.criterion(output["linear"], target)
 
         accuracy, pred = self.evaluator.process_single_batches(target, output["linear"], topk=(1, 5))
-        metrics_dict["train_top1"] = accuracy["top1"]
-        metrics_dict["train_top5"] = accuracy["top5"]
+
+
         metrics_dict["data_time"] = end_time
-        metrics_dict["loss"] = loss
+        metrics_dict["cls_loss"] = loss.item()
+
+        metrics_test_dict["train_top1"] = accuracy["top1"]
+        metrics_test_dict["train_top5"] = accuracy["top5"]
 
         self._write_metrics(metrics_dict)
+        self._write_test_metrics(metrics_test_dict)
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -136,7 +141,7 @@ class TrainDarknet53Solver(BaseSolver):
     def test(self):
         self.evaluator.reset()
         accuracy = inference_on_dataset(self.model,self._test_dataloader, self.evaluator)
-        self._write_metrics(accuracy)
+        self._write_test_metrics(accuracy)
         self.writers_write()
         self.storage.test_step()
 

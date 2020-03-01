@@ -30,8 +30,19 @@ def get_parser():
     parser.add_argument('--weight_decay', default=1e-4, type=float,help='weight decay (default: 1e-4)')
     parser.add_argument('--pretrained', default='', type=str, help='pre-trained model, if use pre-trained model, set pre-train model path')
 
-    parser.add_argument('--train_transform', default=["ReadImage()","ResizeImage(256, 256)","ToTensor()"], type=list, help="train data transform")
-    parser.add_argument('--test_transform', default=["ReadImage()","ResizeImage(256, 256)","ToTensor()"], type=list, help="test data transform")
+    parser.add_argument('--train_transform', default=["ReadImage()",
+                                            "CenterCrop(320)",
+                                            "RandomFlip(0.5)",
+                                            "RandomNoise(probability=0.4)",
+                                            "RandomBlur(probability=0.4)",
+                                            "RandomHue(probability=0.4)",
+                                            "RandomSaturation(probability=0.4)",
+                                            "RandomContrast(probability=0.4)",
+                                            "RandomBrightness(probability=0.3)",
+                                            "ResizeImage(256, 256)",
+                                            "ToTensor()",
+                                            "Normalize()" ,], type=list, help="train data transform")
+    parser.add_argument('--test_transform', default=["ReadImage()","ResizeImage(256, 256)","ToTensor()", "Normalize()"], type=list, help="test data transform")
 
     return parser.parse_args()
 
