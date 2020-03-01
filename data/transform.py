@@ -4,8 +4,12 @@ import numpy as np
 import torch
 import numbers
 import collections
+import math
 
 import data.transform_func as F
+
+def _is_numpy_image(img):
+    return isinstance(img, np.ndarray) and (img.ndim in {2, 3})
 
 class Compose(object):
     """Composes several transforms together.
@@ -114,7 +118,7 @@ class Scale(ResizeImage):
         super(Scale, self).__init__(*args, **kwargs)
 
 class CenterCrop(object):
-    """Crops the given PIL Image at the center.
+    """Crops the given CV Image at the center.
     Args:
         size (sequence or int): Desired output size of the crop. If size is an
             int instead of sequence like (h, w), a square crop (size, size) is
@@ -136,7 +140,7 @@ class CenterCrop(object):
         return sample
 
 class Pad(object):
-    """Pad the given PIL Image on all sides with the given "pad" value.
+    """Pad the given CV Image on all sides with the given "pad" value.
     Args:
         padding (int or tuple): Padding on each border. If a single int is provided this
             is used to pad all borders. If tuple of length 2 is provided this is the padding
@@ -196,7 +200,7 @@ class Pad(object):
         return sample
 
 class RandomCrop(object):
-    """Crop the given PIL Image at a random location.
+    """Crop the given CV Image at a random location.
     Args:
         size (sequence or int): Desired output size of the crop. If size is an
             int instead of sequence like (h, w), a square crop (size, size) is
@@ -244,7 +248,7 @@ class RandomCrop(object):
         return sample
 
 class RandomHorizontalFlip(object):
-    """Horizontally flip the given PIL Image randomly with a given probability.
+    """Horizontally flip the given CV Image randomly with a given probability.
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
     """
@@ -259,7 +263,7 @@ class RandomHorizontalFlip(object):
         return sample
 
 class RandomVerticalFlip(object):
-    """Vertically flip the given PIL Image randomly with a given probability.
+    """Vertically flip the given CV Image randomly with a given probability.
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
     """
@@ -339,15 +343,157 @@ class ColorJitter(object):
         sample['image'] = transform(image)
         return sample
 
+class RandomGaussianNoise(object):
+    """Applying gaussian noise on the given CV Image randomly with a given probability.
+        Args:
+            p (float): probability of the image being noised. Default value is 0.5
+        """
+
+    def __init__(self, p=0.5, mean=0, std=0.1):
+        assert isinstance(mean, numbers.Number) and mean >= 0, 'mean should be a positive value'
+        assert isinstance(std, numbers.Number) and std >= 0, 'std should be a positive value'
+        assert isinstance(p, numbers.Number) and p >= 0, 'p should be a positive value'
+        self.p = p
+        self.mean = mean
+        self.std = std
+
+    @staticmethod
+    def get_params(mean, std):
+        """Get parameters for gaussian noise
+        Returns:
+            sequence: params to be passed to the affine transformation
+        """
+        mean = random.uniform(-mean, mean)
+        std = random.uniform(-std, std)
+
+        return mean, std
+
+    def __call__(self, sample):
+        """
+        Args:
+            img (np.ndarray): Image to be noised.
+        Returns:
+            np.ndarray: Randomly noised image.
+        """
+        if random.random() < self.p:
+            image = sample['image']
+            new_img = F.gaussian_noise(image, mean=self.mean, std=self.std)
+            sample['image'] = new_img
+        return sample
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(p={})'.format(self.p)
+
+
+class RandomGrayscale(object):
+    """Randomly convert image to grayscale with a probability of p (default 0.1).
+    Args:
+        p (float): probability that image should be converted to grayscale.
+    Returns:
+        CV Image: Grayscale version of the input image with probability p and unchanged
+        with probability (1-p).
+        - If input image is 1 channel: grayscale version is 1 channel
+        - If input image is 3 channel: grayscale version is 3 channel with r == g == b
+    """
+
+    def __init__(self, p=0.1):
+        self.p = p
+
+    def __call__(self, sample):
+        """
+        Args:
+            img (np.ndarray): Image to be converted to grayscale.
+        Returns:
+            np.ndarray: Randomly grayscaled image.
+        """
+        image = sample['image']
+
+        if random.random() < self.p:
+            new_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            sample['image'] = new_image
+        return sample
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(p={0})'.format(self.p)
+
+
+
+class RandomRotation(object):
+    """Rotate the image by angle.
+    Args:
+        degrees (sequence or float or int): Range of degrees to select from.
+            If degrees is a number instead of sequence like (min, max), the range of degrees
+            will be (-degrees, +degrees) clockwise order.
+        resample ({CV.Image.NEAREST, CV.Image.BILINEAR, CV.Image.BICUBIC}, optional):
+            An optional resampling filter.
+            If omitted, or if the image has mode "1" or "P", it is set to NEAREST.
+        expand (bool, optional): Optional expansion flag.
+            If true, expands the output to make it large enough to hold the entire rotated image.
+            If false or omitted, make the output image the same size as the input image.
+            Note that the expand flag assumes rotation around the center and no translation.
+        center (2-tuple, optional): Optional center of rotation.
+            Origin is the upper left corner.
+            Default is the center of the image.
+    """
+
+    def __init__(self, degrees, resample='BILINEAR', expand=False, center=None):
+        if isinstance(degrees, numbers.Number):
+            if degrees < 0:
+                raise ValueError("If degrees is a single number, it must be positive.")
+            self.degrees = (-degrees, degrees)
+        else:
+            if len(degrees) != 2:
+                raise ValueError("If degrees is a sequence, it must be of len 2.")
+            self.degrees = degrees
+
+        self.resample = resample
+        self.expand = expand
+        self.center = center
+
+    @staticmethod
+    def get_params(degrees):
+        """Get parameters for ``rotate`` for a random rotation.
+        Returns:
+            sequence: params to be passed to ``rotate`` for random rotation.
+        """
+        angle = random.uniform(degrees[0], degrees[1])
+
+        return angle
+
+    def __call__(self, sample):
+        """
+            img (np.ndarray): Image to be rotated.
+        Returns:
+            np.ndarray: Rotated image.
+        """
+        image = sample['image']
+        angle = self.get_params(self.degrees)
+        new_image = F.rotate(image, angle, self.resample, self.expand, self.center)
+        sample['image'] = new_image
+        return sample
+
+    def __repr__(self):
+        format_string = self.__class__.__name__ + '(degrees={0}'.format(self.degrees)
+        format_string += ', resample={0}'.format(self.resample)
+        format_string += ', expand={0}'.format(self.expand)
+        if self.center is not None:
+            format_string += ', center={0}'.format(self.center)
+        format_string += ')'
+        return format_string
+
 
 if __name__ == '__main__':
-    norm1 = Normalize(mean=0, std=2)
-    image_arr = cv2.imread('1.jpg', cv2.IMREAD_COLOR)
-    cv2.imshow("image", image_arr)
+    norm1 = RandomGrayscale(40)
+    image_arr = cv2.imread('1.jpeg', cv2.IMREAD_COLOR)
+    # cv2.imshow("image", image_arr)
+    # img = cv2.resize(image_arr, (200, 200))
+    # print(image_arr.shape)
+    # print(img.shape)
+    # cv2.imshow("image", img)
+    sample = {'image': image_arr, 'label': None}
+    new_sample = norm1(sample)
+    cv2.imshow("image", new_sample['image'])
     cv2.waitKey(0)
-    img = cv2.resize(image_arr, (200, 200))
-    print(image_arr.shape)
-    print(img.shape)
-    sample = {'image': img, 'label': None}
-    # new_sample = norm1(sample)
+    cv2.imshow("image", sample['image'])
+    cv2.waitKey(0)
 

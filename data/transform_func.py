@@ -1,6 +1,7 @@
 from __future__ import division
 import cv2
 import numpy as np
+import math
 
 def _is_numpy_image(img):
     return isinstance(img, np.ndarray) and (img.ndim in {2, 3})
@@ -53,7 +54,7 @@ def adjust_saturation(img, saturation_factor):
         np.ndarray: Saturation adjusted image.
     """
     if not _is_numpy_image(img):
-        raise TypeError('img should be PIL Image. Got {}'.format(type(img)))
+        raise TypeError('img should be CV Image. Got {}'.format(type(img)))
 
     im = img.astype(np.float32)
     degenerate = cv2.cvtColor(cv2.cvtColor(im, cv2.COLOR_RGB2GRAY), cv2.COLOR_GRAY2RGB)
@@ -88,3 +89,39 @@ def adjust_hue(img, hue_factor):
 
     im = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB_FULL)
     return im.astype(img.dtype)
+
+def gaussian_noise(image: np.ndarray, mean, std):
+    imagetype = image.dtype
+    gauss = np.random.normal(mean, std, image.shape).astype(np.float32)
+    noisy = np.clip((1 + gauss) * image.astype(np.float32), 0, 255)
+    return noisy.astype(imagetype)
+
+
+def rotate(img, angle, resample=False, expand=False, center=None):
+    """Rotate the image by angle.
+    Args:
+        img (CV2 Image): CV2 Image to be rotated.
+        angle ({float, int}): In degrees degrees counter clockwise order.
+        resample ({CV.Image.NEAREST, CV.Image.BILINEAR, CV.Image.BICUBIC}, optional):
+        expand (bool, optional): Optional expansion flag.
+            If true, expands the output image to make it large enough to hold the entire rotated image.
+            If false or omitted, make the output image the same size as the input image.
+            Note that the expand flag assumes rotation around the center and no translation.
+        center (2-tuple, optional): Optional center of rotation.
+            Origin is the upper left corner.
+            Default is the center of the image.
+    """
+
+    if not _is_numpy_image(img):
+        raise TypeError('img should be nparray Image. Got {}'.format(type(img)))
+
+    if center == None:
+        h, w = img.shape[:2]
+        center = (w // 2, h // 2)
+    if expand == True:
+        ratio = math.sin(2 * math.pi * angle / 360) * w / h + math.cos(2 * math.pi * angle / 360)
+    else:
+        ratio = 1
+    M = cv2.getRotationMatrix2D(center, angle, ratio)
+
+    return cv2.warpAffine(img, M, (h, w))
