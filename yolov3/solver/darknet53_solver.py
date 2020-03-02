@@ -31,7 +31,7 @@ class TrainDarknet53Solver(BaseSolver):
         self.train_freq        = cfg.SOLVER.TRAIN_VIS_ITER_FREQ
         self.lr               = cfg.SOLVER.LR
         self.decay_epoch      = cfg.SOLVER.DECAY_EPOCH
-        self.gpu_ids          = cfg.SOLVER.GPU_IDS
+        self.gpu_ids          = cfg.SOLVER.GPU_IDS.split(",") if len(cfg.SOLVER.GPU_IDS) > 0  else ""
         self.pretrained       = cfg.SOLVER.PRETRAINED
 
         self.dataset_name = self.cfg.DATASET.DATASET_NAME
