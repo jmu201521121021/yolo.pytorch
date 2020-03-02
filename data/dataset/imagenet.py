@@ -45,8 +45,10 @@ class BuildImageNetDataset(BaseDataset):
 
     def __init__(self, cfg, training=True):
         super(BuildImageNetDataset, self).__init__(cfg, training)
-        self.items = get_image_list(cfg.DATASET.DATA_ROOT, training)
+        self.setItems(cfg)
 
+    def setItems(self, cfg):
+        self.items = get_image_list(cfg.DATASET.DATA_ROOT, self.training)
 
 if __name__  == "__main__":
     from yolov3.configs.default import get_default_config
