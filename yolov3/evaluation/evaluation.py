@@ -79,7 +79,7 @@ class DatasetEvaluators(DatasetEvaluator):
         return results
 
 
-def inference_on_dataset(model, data_loader, evaluator):
+def inference_on_dataset(model, data_loader, evaluator, device=torch.device("cpu")):
     """
     Run model on the data_loader and evaluate the metrics with evaluator.
     Also benchmark the inference speed of `model.forward` accurately.
@@ -95,7 +95,7 @@ def inference_on_dataset(model, data_loader, evaluator):
             The elements it generates will be the inputs to the model.
         evaluator (DatasetEvaluator): the evaluator to run. Use `None` if you only want
             to benchmark, but don't want to do any evaluation.
-
+        device (torch.device): cpu or gpu
     Returns:
         The return value of `evaluator.evaluate()`
     """
@@ -119,7 +119,7 @@ def inference_on_dataset(model, data_loader, evaluator):
 
             start_compute_time = time.perf_counter()
             target  = dict()
-            image = inputs["image"]
+            image = inputs["image"].to(device)
             if "label" in inputs:
                 target["label"] = inputs["label"]
             if "boxes" in inputs:

@@ -1,5 +1,7 @@
 import torch
 import  os
+from datetime import datetime
+
 from abc import  ABCMeta, abstractclassmethod
 from yolov3.utils.events import CommonMetricPrinter, JSONWriter, TensorboardXWriter
 from yolov3.utils.events import EventStorage
@@ -103,11 +105,13 @@ class BaseSolver(metaclass=ABCMeta):
 
         """
         # Assume the default print/log frequency.
+
+        time_log = "{0:%Y-%m-%d-%H-%M-%S-tensorboard/}".format(datetime.now())
         return [
             # It may not always print what you want to see, since it prints "common" metrics only.
             CommonMetricPrinter(self.max_iter),
             JSONWriter(os.path.join(self.cfg.LOG.LOG_DIR, "metrics.json")),
-            TensorboardXWriter(self.cfg.LOG.LOG_DIR),
+            TensorboardXWriter(os.path.join(self.cfg.LOG.LOG_DIR, time_log)),
         ]
 
     def _write_metrics(self, metrics_dict: dict):

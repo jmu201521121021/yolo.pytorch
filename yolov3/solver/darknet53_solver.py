@@ -140,7 +140,7 @@ class TrainDarknet53Solver(BaseSolver):
 
     def test(self):
         self.evaluator.reset()
-        accuracy = inference_on_dataset(self.model,self._test_dataloader, self.evaluator)
+        accuracy = inference_on_dataset(self.model,self._test_dataloader, self.evaluator, self.device)
         self._write_test_metrics(accuracy)
         self.writers_write()
         self.storage.test_step()
