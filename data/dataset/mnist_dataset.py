@@ -1,9 +1,10 @@
 from data.dataset.base_dataset import BaseDataset
 from data.dataset.imagenet import get_image_list
-
+from data.dataset.build import DATASET_REGISTRY
 __all__ = ["BuildMnistDataset"]
 
 
+@DATASET_REGISTRY.register()
 class BuildMnistDataset(BaseDataset):
     """Build Mnist Dataset"""
     def __init__(self, cfg, training=True):
