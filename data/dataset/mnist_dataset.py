@@ -9,7 +9,6 @@ class BuildMnistDataset(BaseDataset):
     """Build Mnist Dataset"""
     def __init__(self, cfg, training=True):
         super(BuildMnistDataset, self).__init__(cfg, training)
-        # TODO: read mnist dataset
         self.setItems(cfg)
 
     def setItems(self, cfg):
