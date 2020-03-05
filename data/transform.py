@@ -109,7 +109,7 @@ class Normalize(object):
             image.div_(255.0)
         else:
             image.sub_(self.mean).div_(self.std)
-            sample["image"] = image
+        sample["image"] = image
         return sample
 
     def __repr__(self):
