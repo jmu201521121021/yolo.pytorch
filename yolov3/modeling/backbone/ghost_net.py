@@ -122,7 +122,7 @@ class Ghostnet(Backbone):
                      Bottlenecks(80, 80, 184 / 80, ratio, linear_size=linear_size, activation=activation),
                      Bottlenecks(80, 80, 184 / 80, ratio, linear_size=linear_size, activation=activation),
                      Bottlenecks(80, 112, 480 / 80, ratio, use_se=True, linear_size=linear_size,activation=activation),
-                     Bottlenecks(112, 112, 672 / 80, ratio, use_se=True, linear_size=linear_size, activation=activation),
+                     Bottlenecks(112, 112, 672 / 112, ratio, use_se=True, linear_size=linear_size, activation=activation),
                      Bottlenecks(112, 160, 672 / 112, ratio, use_se=True,stride=2, linear_size=linear_size, activation=activation),]
 
         res5 = [Bottlenecks(160, 160, 960 / 160, ratio, linear_size=linear_size, activation=activation),
