@@ -277,10 +277,10 @@ class DarkNet(Backbone):
 @BACKBONE_REGISTRY.register()
 def build_darknet_backbone(cfg, input_shape):
     """
-    Create a ResNet instance from config.
+    Create a Darknet53 instance from config.
 
     Returns:
-        ResNet: a :class:`ResNet` instance.
+        Darknet53: a :class:`Darknet53` instance.
     """
     # need registration of new blocks/stems?
     norm = cfg.MODEL.DARKNETS.NORM

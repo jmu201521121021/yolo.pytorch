@@ -5,6 +5,8 @@ from torch.nn import functional as F
 
 import fvcore.nn.weight_init as weight_init
 
+__all__ = ["FrozenBatchNorm2d", "get_norm", "get_activate", "ConvNormAV",
+            "cat", "SELayer", "DWConv"]
 
 class FrozenBatchNorm2d(nn.Module):
     """
@@ -201,3 +203,40 @@ class ConvNormAV(nn.Module):
         if self.activate is not None:
             x = self.activate(x)
         return x
+
+class DWConv(nn.Module):
+    def __init__(self, input_channels,
+                        out_channels,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1):
+        super(DWConv,self).__init__()
+        self.layers = nn.Sequential(
+                nn.Conv2d(input_channels, input_channels, kernel_size, stride, padding, groups=input_channels, bias=False),
+                nn.BatchNorm2d(input_channels),
+                nn.Conv2d(input_channels, out_channels, kernel_size=1, stride=1, bias=False),
+                nn.BatchNorm2d(out_channels),
+        )
+
+    def forward(self, x):
+        return self.layers(x)
+
+class SELayer(nn.Module):
+    def __init__(self, input_channels, reduction):
+        super(SELayer, self).__init__()
+        self.global_avg = nn.AdaptiveAvgPool2d(1)
+        self.f_sq = nn.Linear(input_channels, input_channels // reduction, bias=False)
+        self.f_ex = nn.Linear(input_channels // reduction, input_channels, bias=False)
+
+    def forward(self, x):
+        squeeze = self.global_avg(x)
+        batch, channel, _, _ = squeeze.size()
+        squeeze = squeeze.view(batch, channel)
+        excitation =  self.f_sq(squeeze)
+        excitation = F.relu(excitation, inplace=True)
+        excitation = self.f_ex(excitation)
+        excitation = torch.sigmoid(excitation)
+
+        excitation = excitation.view(batch, channel, 1, 1)
+        out = x * excitation
+        return out
