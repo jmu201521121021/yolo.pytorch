@@ -214,7 +214,7 @@ class DWConv(nn.Module):
         self.layers = nn.Sequential(
                 nn.Conv2d(input_channels, input_channels, kernel_size, stride, padding, groups=input_channels, bias=False),
                 nn.BatchNorm2d(input_channels),
-                nn.Conv2d(input_channels, out_channels, kernel_size=1, stride=1, bias=False),
+                nn.Conv2d(input_channels, out_channels, kernel_size=1, stride=1, padding=0,bias=False),
                 nn.BatchNorm2d(out_channels),
         )
 

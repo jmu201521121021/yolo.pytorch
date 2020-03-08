@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from yolov3.layers import get_activate, get_norm, ShapeSpec
-from yolov3.modeling import Backbone
+from yolov3.modeling import Backbone, BACKBONE_REGISTRY
 
 from yolov3.layers import SELayer, DWConv
 
@@ -63,7 +63,7 @@ class Bottlenecks(nn.Module):
                         ):
         super(Bottlenecks, self).__init__()
 
-        middle_channels = input_channels * expand_ratio
+        middle_channels = int(input_channels * expand_ratio)
         self.ghost_module0 = nn.Sequential(GhostModule(input_channels, middle_channels, ratio, kernel_size,1, padding, linear_kernel=linear_size, use_bias=use_bias),
                                            get_activate(activation, alpha),
                                            get_norm(norm, middle_channels),
@@ -72,16 +72,18 @@ class Bottlenecks(nn.Module):
                                             get_norm(norm, output_channels),
                                            )
         self.dw_stride2x2 = nn.Conv2d(middle_channels, middle_channels, kernel_size, stride, padding, groups=middle_channels) if stride == 2 else None
-        self.stride2x2_res = DWConv(input_channels, output_channels, kernel_size, stride, padding) if stride == 2 else None
+        self.res_block = None if input_channels == output_channels else  DWConv(input_channels, output_channels, kernel_size, stride, padding)
         self.se_layer = SELayer(middle_channels, 4) if use_se else None
 
     def forward(self, x):
-        shortcut = x
+        if self.res_block is not  None:
+            shortcut = self.res_block(x)
+        else:
+            shortcut = x
         # ghost_module1
         out = self.ghost_module0(x)
         # stride = 2
         if self.dw_stride2x2 is not  None:
-            shortcut = self.stride2x2_res(shortcut)
             out = self.dw_stride2x2(out)
         #SE
         if self.se_layer is not None:
@@ -98,6 +100,7 @@ class Ghostnet(Backbone):
     """
     def __init__(self, input_channels=3,
                         num_classes=1000,
+                        out_features=None,
                         norm="BN",
                         activation="ReLU",
                         alpha=0,
@@ -105,6 +108,11 @@ class Ghostnet(Backbone):
                         linear_size=3,
                         expand_ratio_channel=1.0):
         super(Ghostnet, self).__init__()
+
+        self.num_classes = num_classes
+        self._out_feature_strides = {"stem": 2}
+        self._out_feature_channels = {"stem": 16}
+        res_out_channels = [24, 40, 80, 160, 960]
         self.stem = nn.Sequential(nn.Conv2d(input_channels, 16, 3, 2 ,1),
                                   get_norm(norm, 16),
                                   get_activate(activation, alpha))
@@ -131,29 +139,48 @@ class Ghostnet(Backbone):
                      Bottlenecks(160, 160, 960 / 160, ratio, use_se=True, linear_size=linear_size, activation=activation),
                      nn.Conv2d(160, 960, 3, 1, 1, bias=True)
                    ]
-        self.res1 = nn.Sequential(*res1)
-        self.res2 = nn.Sequential(*res2)
-        self.res3 = nn.Sequential(*res3)
-        self.res4 = nn.Sequential(*res4)
-        self.res5 = nn.Sequential(*res5)
+        self.stages_and_names = []
+        current_stride = self._out_feature_strides["stem"]
+        stages = [res1, res2, res3, res4, res5]
+        for i, blocks in enumerate(stages):
+            stage = nn.Sequential(*blocks)
+            name = "res" + str(i+1)
+            self.add_module(name, stage)
+            self.stages_and_names.append((stage, name))
+            if i != (len(stages)-1):
+                current_stride = current_stride * 2
+            self._out_feature_strides[name] =  current_stride
+            self._out_feature_channels[name] = res_out_channels[i]
 
-        self.global_avg = nn.AdaptiveAvgPool2d(1)
-        self.conv_last = nn.Conv2d(960, 1280, 1, 1)
-        self.fc = nn.Linear(1280, num_classes)
+        if num_classes is not None:
+            self.avgpool = nn.AdaptiveAvgPool2d(1)
+            self.conv_last = nn.Conv2d(960, 1280, 1, 1)
+            self.linear = nn.Linear(1280, num_classes)
+            name = "linear"
+        #classifier model
+        if out_features is None:
+             out_features = [name]
+        self._out_features = out_features
+        assert len(self._out_features)
 
     def forward(self, x):
-        out = self.stem(x)
-        out = self.res1(out)
-        out = self.res2(out)
-        out = self.res3(out)
-        out = self.res4(out)
-        out = self.res5(out)
+        outputs = {}
+        x = self.stem(x)
+        if "stem" in self._out_features:
+            outputs["stem"] = x
+        for stage, name in self.stages_and_names:
+            x = stage(x)
+            if name in self._out_features:
+                outputs[name] = x
 
-        out = self.global_avg(out)
-        out = torch.flatten(out, 1)
-        out = self.fc(out)
-
-        return  out
+        if self.num_classes is not None:
+            x = self.avgpool(x)
+            x = self.conv_last(x)
+            x = torch.flatten(x, 1)
+            x = self.linear(x)
+            if "linear" in self._out_features:
+                outputs["linear"] = x
+        return outputs
 
     def output_shape(self):
         return {
@@ -162,13 +189,29 @@ class Ghostnet(Backbone):
             )
             for name in self._out_features
         }
-def build_ghostnet_backbone(cfh, input_shape):
+
+@BACKBONE_REGISTRY.register()
+def build_ghostnet_backbone(cfg, input_shape):
     """
     Create a ghostnet instance from config.
 
     Returns:
         ghostnet: a :class:`ghostnet` instance.
     """
+    norm                = cfg.MODEL.GHOSTNET.NORM
+    activate            = cfg.MODEL.GHOSTNET.ACTIVATE
+    alpha               = cfg.MODEL.GHOSTNET.ACTIVATE_ALPHA
+
+    out_features        = cfg.MODEL.GHOSTNET.OUT_FEATURES
+    in_channels         = input_shape.channels
+    num_classes         = cfg.MODEL.GHOSTNET.NUM_CLASSES
+
+    linear_kernel_size  =  cfg.MODEL.GHOSTNET.LINEAR_KERBER_SIZE
+    ratio               =  cfg.MODEL.GHOSTNET.RATIO
+
+    if num_classes is not None:
+        out_features = None
+    return Ghostnet(in_channels, num_classes, out_features, norm, activate, alpha, ratio, linear_kernel_size)
 
 if __name__ == "__main__":
     se_layer = SELayer(32, 16)
@@ -182,5 +225,12 @@ if __name__ == "__main__":
     print(bottlenecks)
     out_bls = bottlenecks(x_bls)
 
-    print(out_bls.size())
+    # print(out_bls.size())
     print(out.size(), se_out.size())
+    from yolov3.configs.default import  get_default_config
+    cfg = get_default_config()
+    input_shape = ShapeSpec(channels=3)
+    net = build_ghostnet_backbone(cfg, input_shape)
+    print(net)
+    net_out = net(x)
+    print(net_out["linear"].size())
