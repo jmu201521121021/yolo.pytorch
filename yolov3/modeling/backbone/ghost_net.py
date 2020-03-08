@@ -1,9 +1,10 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import fvcore.nn.weight_init as weight_init
+
 from yolov3.layers import get_activate, get_norm, ShapeSpec
-from yolov3.modeling import Backbone, BACKBONE_REGISTRY
+from yolov3.modeling.backbone import Backbone, BACKBONE_REGISTRY
 
 from yolov3.layers import SELayer, DWConv
 
@@ -114,7 +115,7 @@ class Ghostnet(Backbone):
         self._out_feature_strides = {"stem": 2}
         self._out_feature_channels = {"stem": 16}
         res_out_channels = [24, 40, 80, 160, 960]
-        self.stem = nn.Sequential(nn.Conv2d(input_channels, 16, 3, 2 ,1),
+        self.stem = nn.Sequential(nn.Conv2d(input_channels, 16, 3, 2 ,1, bias=False),
                                   get_norm(norm, 16),
                                   get_activate(activation, alpha))
 
@@ -155,14 +156,29 @@ class Ghostnet(Backbone):
 
         if num_classes is not None:
             self.avgpool = nn.AdaptiveAvgPool2d(1)
-            self.conv_last = nn.Conv2d(960, 1280, 1, 1)
+            self.conv_last = nn.Sequential(nn.Conv2d(960, 1280, 1, 1),
+                                           get_norm(norm, 1280),
+                                           get_activate(activation, alpha),)
+
             self.linear = nn.Linear(1280, num_classes)
+            nn.init.normal_(self.linear.weight, std=0.01)
+            nn.init.constant_(self.linear.bias, 0)
+
             name = "linear"
         #classifier model
         if out_features is None:
              out_features = [name]
         self._out_features = out_features
         assert len(self._out_features)
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                weight_init.c2_msra_fill(m)
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
 
     def forward(self, x):
         outputs = {}
@@ -213,32 +229,3 @@ def build_ghostnet_backbone(cfg, input_shape):
     if num_classes is not None:
         out_features = None
     return Ghostnet(in_channels, num_classes, out_features, norm, activate, alpha, ratio, linear_kernel_size)
-
-if __name__ == "__main__":
-    se_layer = SELayer(32, 16)
-    ghost_module = GhostModule(3, 32, 4)
-    print(ghost_module)
-    x = torch.randn(1, 3, 256, 256)
-    out = ghost_module(x)
-    se_out = se_layer(out)
-    x_bls = torch.randn(1, 16, 256, 256)
-    bottlenecks = Bottlenecks(16, 32, 2, 2, stride=2, use_se=True)
-    print(bottlenecks)
-    out_bls = bottlenecks(x_bls)
-
-    # print(out_bls.size())
-    print(out.size(), se_out.size())
-    from yolov3.configs.default import  get_default_config
-    cfg = get_default_config()
-    input_shape = ShapeSpec(channels=3)
-    # net = build_ghostnet_backbone(cfg, input_shape)
-    # print(net)
-    # net_out = net(x)
-    # print(net_out["linear"].size())
-    cfg.MODEL.GHOSTNET.NUM_CLASSES = None
-    cfg.MODEL.GHOSTNET.OUT_FEATURES = ["res3", "res4", "res5"]
-    net = build_ghostnet_backbone(cfg, input_shape)
-    print(net)
-    net_out = net(x)
-    for name, feature in net_out.items():
-        print("{} -> {}".format(name, feature.size()))

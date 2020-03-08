@@ -8,7 +8,8 @@ from .backbone import (
     make_stage,
     FPN,
     OutConvLayer,
-    build_darknet_fpn_backbone
+    build_darknet_fpn_backbone,
+    build_ghostnet_backbone,
 )
 from  .meta_arch import (
     build_model,
