@@ -7,6 +7,7 @@ from yolov3.modeling import Backbone, BACKBONE_REGISTRY
 
 from yolov3.layers import SELayer, DWConv
 
+__all__ = ["GhostModule", "Ghostnet", "build_ghostnet_backbone" ]
 class GhostModule(nn.Module):
     def __init__(self, input_channels,
                       output_channels,
@@ -230,7 +231,14 @@ if __name__ == "__main__":
     from yolov3.configs.default import  get_default_config
     cfg = get_default_config()
     input_shape = ShapeSpec(channels=3)
+    # net = build_ghostnet_backbone(cfg, input_shape)
+    # print(net)
+    # net_out = net(x)
+    # print(net_out["linear"].size())
+    cfg.MODEL.GHOSTNET.NUM_CLASSES = None
+    cfg.MODEL.GHOSTNET.OUT_FEATURES = ["res3", "res4", "res5"]
     net = build_ghostnet_backbone(cfg, input_shape)
     print(net)
     net_out = net(x)
-    print(net_out["linear"].size())
+    for name, feature in net_out.items():
+        print("{} -> {}".format(name, feature.size()))
