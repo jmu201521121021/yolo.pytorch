@@ -209,13 +209,17 @@ class DWConv(nn.Module):
                         out_channels,
                         kernel_size=3,
                         stride=1,
-                        padding=1):
+                        padding=1,
+                        use_relu=False
+                 ):
         super(DWConv,self).__init__()
         self.layers = nn.Sequential(
                 nn.Conv2d(input_channels, input_channels, kernel_size, stride, padding, groups=input_channels, bias=False),
                 nn.BatchNorm2d(input_channels),
+                nn.ReLU(inplace=True) if use_relu else None,
                 nn.Conv2d(input_channels, out_channels, kernel_size=1, stride=1, padding=0,bias=False),
                 nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True) if use_relu else None,
         )
 
     def forward(self, x):

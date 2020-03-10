@@ -107,6 +107,14 @@ def get_default_config():
     CFG.MODEL.GHOSTNET.LINEAR_KERBER_SIZE = 3
     CFG.MODEL.GHOSTNET.RATIO = 2
 
+    ## mobilenet config
+    CFG.MODEL.MOBILENETV1 = edict()
+
+    CFG.MODEL.MOBILENETV1.NORM = "BN"
+    CFG.MODEL.MOBILENETV1.ACTIVATE = "ReLU"
+    CFG.MODEL.MOBILENETV1.OUT_FEATURES = ["res4", "res5", "linear"]
+    CFG.MODEL.MOBILENETV1.NUM_CLASSES = 10
+
     return CFG
 
 

@@ -10,6 +10,7 @@ from .backbone import (
     OutConvLayer,
     build_darknet_fpn_backbone,
     build_ghostnet_backbone,
+    build_mobilenetv1_backbone
 )
 from  .meta_arch import (
     build_model,
