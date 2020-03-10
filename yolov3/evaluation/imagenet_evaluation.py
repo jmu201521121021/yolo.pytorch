@@ -1,5 +1,6 @@
 
 import torch
+import torch.nn.functional  as F
 import numpy as np
 import logging
 from collections import OrderedDict, defaultdict
@@ -23,6 +24,7 @@ class ImagenetEvaluator(DatasetEvaluator):
     def process_single_batches(self, target, output, topk=(1, )):
         output = output.to(self._cpu_device)
         target = target.to(self._cpu_device)
+        output = F.softmax(output, 1)
         accuracy = {}
         pred = None
         with torch.no_grad():
@@ -42,6 +44,7 @@ class ImagenetEvaluator(DatasetEvaluator):
     def process(self, target, output, topk=(1,5)):
         target = target["label"]
         output = output["linear"]
+        output = F.softmax(output, 1)
         output = output.to(self._cpu_device)
         target = target.to(self._cpu_device)
         with torch.no_grad():
