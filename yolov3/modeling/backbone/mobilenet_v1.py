@@ -7,15 +7,15 @@ from yolov3.layers import get_norm, get_activate, ShapeSpec
 from yolov3.modeling.backbone import Backbone, BACKBONE_REGISTRY
 # from yolov3.configs.default import get_default_config
 
-__all__ = ["Mobile_base", "MobileNet_v1", "build_MobileNet_V1_backbone"]
+__all__ = ["MobileBase", "MobileNetV1", "build_mobilenetv1_backbone"]
 
 
-class Mobile_base(nn.Module):
+class MobileBase(nn.Module):
     def __init__(self, input_channels,
                        output_channels,
                        stride,
                        use_relu=True):
-        super(Mobile_base, self).__init__()
+        super(MobileBase, self).__init__()
 
         self.conv_dw = DWConv(input_channels,
                               output_channels,
@@ -27,37 +27,37 @@ class Mobile_base(nn.Module):
         return out
 
 
-class MobileNet_v1(Backbone):
+class MobileNetV1(Backbone):
     def __init__(self, input_channels=3,
                        num_classes=10,
                        out_features=None,
                        norm="BN",
                        activate="ReLU"):
-        super(MobileNet_v1, self).__init__()
+        super(MobileNetV1, self).__init__()
 
         self.num_classes = num_classes
-        self._out_feature_stride = {"conv_bn_av": 2}
-        self._out_feature_channels = {"conv_bn_av": 32}
+        self._out_feature_stride = {"stem": 2}
+        self._out_feature_channels = {"stem": 32}
         out_channels = [128, 256, 512, 1024, 1024]
-        self.conv_bn_av = ConvNormAV(input_channels, 32, 3, 2, 1,
+        self.stem = ConvNormAV(input_channels, 32, 3, 2, 1,
                                      norm=get_norm(norm, 32),
                                      activate=get_activate(activate, alpha=0.1))
 
-        dw1 = [Mobile_base(32, 64, 1),
-               Mobile_base(64, 128, 2)]
-        dw2 = [Mobile_base(128, 128, 1),
-               Mobile_base(128, 256, 2)]
-        dw3 = [Mobile_base(256, 256, 1),
-               Mobile_base(256, 512, 2)]
-        dw4 = [Mobile_base(512, 512, 1),
-               Mobile_base(512, 512, 1),
-               Mobile_base(512, 512, 1),
-               Mobile_base(512, 512, 1),
-               Mobile_base(512, 512, 1),
-               Mobile_base(512, 1024, 2)]
-        dw5 = [Mobile_base(1024, 1024, 1)]
+        dw1 = [MobileBase(32, 64, 1),
+               MobileBase(64, 128, 2)]
+        dw2 = [MobileBase(128, 128, 1),
+               MobileBase(128, 256, 2)]
+        dw3 = [MobileBase(256, 256, 1),
+               MobileBase(256, 512, 2)]
+        dw4 = [MobileBase(512, 512, 1),
+               MobileBase(512, 512, 1),
+               MobileBase(512, 512, 1),
+               MobileBase(512, 512, 1),
+               MobileBase(512, 512, 1),
+               MobileBase(512, 1024, 2)]
+        dw5 = [MobileBase(1024, 1024, 1)]
         self.stages_and_names = []
-        current_stride = self._out_feature_stride["conv_bn_av"]
+        current_stride = self._out_feature_stride["stem"]
         stages = [dw1, dw2, dw3, dw4, dw5]
         for i, blocks in enumerate(stages):
             stage = nn.Sequential(*blocks)
@@ -93,9 +93,9 @@ class MobileNet_v1(Backbone):
 
     def forward(self, x):
         outputs = {}
-        x = self.conv_bn_av(x)
-        if "conv_bn_av" in self._out_features:
-            outputs["conv_bn_av"] = x
+        x = self.stem(x)
+        if "stem" in self._out_features:
+            outputs["stem"] = x
         for stage, name in self.stages_and_names:
             x = stage(x)
             if name in self._out_features:
@@ -119,23 +119,23 @@ class MobileNet_v1(Backbone):
 
 
 @BACKBONE_REGISTRY.register()
-def build_MobileNet_V1_backbone(cfg, input_shape):
+def build_mobilenetv1_backbone(cfg, input_shape):
     """
     Create a MobileNet instance from config.
 
     Returns:
-        MobileNet: a :class:`MobileNet_v1` instance.
+        MobileNet: a :class:`MobileNetV1` instance.
     """
     # if input_shape is None:
     #     input_shape = ShapeSpec(channels=3)
     # cfg = get_default_config()
-    norm                = cfg.MODEL.MOBILENET_V1.NORM
-    activate            = cfg.MODEL.MOBILENET_V1.ACTIVATE
-    out_features        = cfg.MODEL.MOBILENET_V1.OUT_FEATURES
+    norm                = cfg.MODEL.MOBILENETV1.NORM
+    activate            = cfg.MODEL.MOBILENETV1.ACTIVATE
+    out_features        = cfg.MODEL.MOBILENETV1.OUT_FEATURES
     in_channels         = input_shape.channels
-    num_classes         = cfg.MODEL.MOBILENET_V1.NUM_CLASSES
+    num_classes         = cfg.MODEL.MOBILENETV1.NUM_CLASSES
 
     if num_classes is not None:
         out_features = None
-    return MobileNet_v1(in_channels, num_classes, out_features, norm, activate)
+    return MobileNetV1(in_channels, num_classes, out_features, norm, activate)
 

@@ -11,9 +11,9 @@ from data.dataloader import build_classifier_train_dataloader, build_classifier_
 from yolov3.utils.events import EventStorage
 from yolov3.evaluation import  ImagenetEvaluator, inference_on_dataset
 
-__all__ = ["TrainMobileNet_V1_Solver"]
+__all__ = ["TrainMobileNetV1Solver"]
 
-class TrainMobileNet_V1_Solver(BaseSolver):
+class TrainMobileNetV1Solver(BaseSolver):
 
     def __init__(self, cfg):
         super().__init__(cfg)
@@ -50,7 +50,7 @@ class TrainMobileNet_V1_Solver(BaseSolver):
                                          momentum=self.cfg.SOLVER.MOMENTUM,
                                          weight_decay=self.cfg.SOLVER.WEIGHT_DECAY)
         # logger
-        self.logger = logging.getLogger("mobilenet_v1")
+        self.logger = logging.getLogger("mobilenetv1")
         if not self.logger.isEnabledFor(logging.INFO):  # setup_logger is not called for d2
             self.logger = setup_logger(output=self.cfg.LOG.LOG_DIR)
         # loss
