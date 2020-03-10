@@ -119,7 +119,7 @@ class MobileNet_v1(Backbone):
 
 
 @BACKBONE_REGISTRY.register()
-def build_MobileNet_backbone(cfg, input_shape):
+def build_MobileNet_V1_backbone(cfg, input_shape):
     """
     Create a MobileNet instance from config.
 
@@ -129,11 +129,11 @@ def build_MobileNet_backbone(cfg, input_shape):
     # if input_shape is None:
     #     input_shape = ShapeSpec(channels=3)
     # cfg = get_default_config()
-    norm                = cfg.MODEL.MOBILENET.NORM
-    activate            = cfg.MODEL.MOBILENET.ACTIVATE
-    out_features        = cfg.MODEL.MOBILENET.OUT_FEATURES
+    norm                = cfg.MODEL.MOBILENET_V1.NORM
+    activate            = cfg.MODEL.MOBILENET_V1.ACTIVATE
+    out_features        = cfg.MODEL.MOBILENET_V1.OUT_FEATURES
     in_channels         = input_shape.channels
-    num_classes         = cfg.MODEL.MOBILENET.NUM_CLASSES
+    num_classes         = cfg.MODEL.MOBILENET_V1.NUM_CLASSES
 
     if num_classes is not None:
         out_features = None
