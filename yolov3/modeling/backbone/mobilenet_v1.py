@@ -7,7 +7,7 @@ from yolov3.layers import get_norm, get_activate, ShapeSpec
 from yolov3.modeling.backbone import Backbone, BACKBONE_REGISTRY
 # from yolov3.configs.default import get_default_config
 
-__all__ = ["Mobile_base", "MobileNet_v1", "build_MobileNet_backbone"]
+__all__ = ["Mobile_base", "MobileNet_v1", "build_MobileNet_V1_backbone"]
 
 
 class Mobile_base(nn.Module):
