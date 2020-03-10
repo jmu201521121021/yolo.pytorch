@@ -5,9 +5,9 @@ import fvcore.nn.weight_init as weight_init
 from yolov3.layers import ConvNormAV, DWConv
 from yolov3.layers import get_norm, get_activate, ShapeSpec
 from yolov3.modeling.backbone import Backbone, BACKBONE_REGISTRY
-from yolov3.configs.default import get_default_config
+# from yolov3.configs.default import get_default_config
 
-__all__ = ["Mobile_base", "MobileNet_v1"]
+__all__ = ["Mobile_base", "MobileNet_v1", "build_MobileNet_backbone"]
 
 
 class Mobile_base(nn.Module):
@@ -126,9 +126,9 @@ def build_MobileNet_backbone(cfg, input_shape):
     Returns:
         MobileNet: a :class:`MobileNet_v1` instance.
     """
-    if input_shape is None:
-        input_shape = ShapeSpec(channels=3)
-    cfg = get_default_config()
+    # if input_shape is None:
+    #     input_shape = ShapeSpec(channels=3)
+    # cfg = get_default_config()
     norm                = cfg.MODEL.MOBILENET.NORM
     activate            = cfg.MODEL.MOBILENET.ACTIVATE
     out_features        = cfg.MODEL.MOBILENET.OUT_FEATURES
@@ -139,11 +139,3 @@ def build_MobileNet_backbone(cfg, input_shape):
         out_features = None
     return MobileNet_v1(in_channels, num_classes, out_features, norm, activate)
 
-
-if __name__ == "__main__":
-    x = torch.randn(1, 32, 112, 112)
-    # mb = Mobile_base(32, 64, 1)
-    # out = mb(x)
-    # print(out.size())
-    net = build_MobileNet_backbone(None, None)
-    print(net)
