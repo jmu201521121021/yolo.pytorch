@@ -11,7 +11,7 @@ from .backbone import (
     build_darknet_fpn_backbone,
     build_ghostnet_backbone,
     build_mobilenetv1_backbone,
-    build_mobilenetV2_backbone
+    build_mobilenetv2_backbone
 )
 from  .meta_arch import (
     build_model,

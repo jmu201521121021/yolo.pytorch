@@ -198,7 +198,7 @@ class MobilenetV2(Backbone):
         }
 
 @BACKBONE_REGISTRY.register()
-def build_mobilenetV2_backbone(cfg, input_shape):
+def build_mobilenetv2_backbone(cfg, input_shape):
     """
     Create a mobilenet instance form config
     :param cfg:
