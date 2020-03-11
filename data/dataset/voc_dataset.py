@@ -8,7 +8,9 @@ __all__ = ["BuildVocDataset"]
 
 sets=[('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
 
-classes = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+classes = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
+           "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike",
+           "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
 def convert_annotation(year, image_id, data_root):
     in_file = open('%s/VOCdevkit/VOC%s/Annotations/%s.xml'%(data_root,year, image_id))
@@ -60,5 +62,5 @@ class BuildVocDataset(BaseDataset):
 if __name__ == "__main__":
     from yolov3.configs.default import  get_default_config
     cfg = get_default_config()
-    cfg.DATASET.DATA_ROOT = "../../..//dataset/voc_dataset/"
+    cfg.DATASET.DATA_ROOT = "../../../dataset/voc_dataset/"
     voc_dataset = BuildVocDataset(cfg)
