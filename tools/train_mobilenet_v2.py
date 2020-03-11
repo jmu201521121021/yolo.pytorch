@@ -17,7 +17,7 @@ def get_parser():
     parser.add_argument('--start_epoch', default=1, type=int, help='start epoch')
     parser.add_argument('--max_epoch', default=1000, type=int, help='max epoch')
 
-    parser.add_argument('--backbone_name',default="build_mobilenetv1_backbone", type=str, help='name of model')
+    parser.add_argument('--backbone_name',default="build_mobilenetV2_backbone", type=str, help='name of model')
     parser.add_argument('--save_model_freq', default=100, type=int, help='frequency of save weight, default(every 1 epoch to save  weight)')
     parser.add_argument('--save_model_dir', default='./weights/', type=str, help='path of save weight')
     parser.add_argument('--print_log_freq', default=100, type=int, help='frequency of show logging, defualt(every 100 iteration to show logging)')

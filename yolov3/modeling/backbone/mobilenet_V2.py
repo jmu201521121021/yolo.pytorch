@@ -66,12 +66,12 @@ class MobilenetV2(Backbone):
     """
     def __init__(self,
                  in_channels=32,
-                 num_classes=1000,
+                 num_classes=10,
                  activate="ReLU",
                  out_features=None,
                  alpha=0,
                  width_mult=1.0,
-                 round_nearest=8,
+                 round_nearest=1,
                  ):
         """
         :param num_classes: Number of classes
@@ -83,8 +83,9 @@ class MobilenetV2(Backbone):
         :param block: Module specifying inverted residual building block for mobilenet
         """
         super(MobilenetV2, self).__init__()
-        self._out_feature_stride = {"conv_bn_av": 2}
-        self._out_feature_channels = {"conv_bn_av": 32}
+        self.num_classes = num_classes
+        self._out_feature_stride = {"stem": 2}
+        self._out_feature_channels = {"stem": 32}
         input_channel = in_channels
         out_channels = [24, 32, 64, 160, 320]
         last_channel = 1280
@@ -115,20 +116,18 @@ class MobilenetV2(Backbone):
             Bottlenecks(in_channels=96, out_channels=160, stride=2, expand_ratio=6, activate="ReLU", alpha=0),
         ]
 
-        res5 =[
+        res5 = [
             Bottlenecks(in_channels=160, out_channels=160, stride=1, expand_ratio=6, activate="ReLU", alpha=0),
             Bottlenecks(in_channels=160, out_channels=160, stride=1, expand_ratio=6, activate="ReLU", alpha=0),
             Bottlenecks(in_channels=160, out_channels=320, stride=1, expand_ratio=6, activate="ReLU", alpha=0),
         ]
 
         self.stages_and_names = []
-        current_stride = self._out_feature_stride["conv_bn_av"]
+        current_stride = self._out_feature_stride["stem"]
         stages = [res1, res2, res3, res4, res5]
 
         # build first layer
-        input_channel = _make_divisible(input_channel * width_mult, round_nearest)
-        self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), round_nearest)
-        self.conv_bn_av = nn.Sequential(ConvBNReLU(3, input_channel, stride=2, activate=activate, alpha=alpha))
+        self.stem = nn.Sequential(ConvBNReLU(input_channel, 32, stride=2, activate=activate, alpha=alpha))
 
         # build inverted residual blocks
         for i, blocks in enumerate(stages):
@@ -142,11 +141,11 @@ class MobilenetV2(Backbone):
             self._out_feature_channels[name] = out_channels[i]
 
         # build last several layers
-        nn.Sequential(ConvBNReLU(out_channels[4], self.last_channel, kernel_size=1, activate=activate, alpha=alpha))
+        nn.Sequential(ConvBNReLU(out_channels[4], last_channel, kernel_size=1, activate=activate, alpha=alpha))
 
         if num_classes is not None:
             self.avgpool = nn.AdaptiveAvgPool2d(1)
-            self.linear = nn.Linear(self.last_channel, num_classes)
+            self.linear = nn.Linear(320, num_classes)
             nn.init.normal_(self.linear.weight, std=0.01)
             nn.init.constant_(self.linear.bias, 0)
             name = "linear"
@@ -174,9 +173,9 @@ class MobilenetV2(Backbone):
 
     def forward(self, x):
         outputs = {}
-        x = self.conv_bn_av(x)
-        if "conv_bn_av" in self._out_features:
-            outputs["conv_bn_av"] = x
+        x = self.stem(x)
+        if "stem" in self._out_features:
+            outputs["stem"] = x
         for stage, name in self.stages_and_names:
             x = stage(x)
             if name in self._out_features:
@@ -184,12 +183,12 @@ class MobilenetV2(Backbone):
 
         if self.num_classes is not None:
             x = self.avgpool(x)
-            x = self.conv_last(x)
             x = torch.flatten(x, 1)
             x = self.linear(x)
             if "linear" in self._out_features:
                 outputs["linear"] = x
-        return x
+        return outputs
+
     def output_shape(self):
         return {
             name: ShapeSpec(
@@ -207,16 +206,17 @@ def build_mobilenetV2_backbone(cfg, input_shape):
     :return:
         mobilenet: a : class:`mobilenet` instance
     """
-    activate     = cfg.MODEL.MOBILENETV2.ACTIVATE
-    alpha        = cfg.MODEL.GHOSTNET.ACTIVATE_ALPHA
+
+    activate = cfg.MODEL.MOBILENETV2.ACTIVATE
+    alpha = cfg.MODEL.GHOSTNET.ACTIVATE_ALPHA
     out_features = cfg.MODEL.MOBILENETV2.OUT_FEATURES
-    in_channels  = input_shape.channels
-    num_classes  = cfg.MOBILENETV2.NUM_CLASSES
+    in_channels = input_shape.channels
+    num_classes = cfg.MODEL.MOBILENETV2.NUM_CLASSES
 
     if num_classes is not None:
         out_features = None
     return MobilenetV2(in_channels, num_classes, activate, out_features, alpha=alpha)
 
 if __name__ == "__main__":
-    net = build_mobilenetV2_backbone(2, 1000)
+    net = build_mobilenetV2_backbone(2, 10)
     print(net)
