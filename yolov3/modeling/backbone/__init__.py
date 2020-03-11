@@ -5,3 +5,4 @@ from  .darknet import DarkNetBlockBase, make_stage, DarkNet, build_darknet_backb
 from  .fpn import build_darknet_fpn_backbone, OutConvLayer, FPN
 from  .ghost_net import build_ghostnet_backbone
 from .mobilenet_v1 import build_mobilenetv1_backbone
+from  .mobilenet_V2 import build_mobilenetV2_backbone
