@@ -2,10 +2,10 @@ import torch.nn as nn
 import torch
 import fvcore.nn.weight_init as weight_init
 
-from yolov3.layers import ConvNormAV, DWConv
+from yolov3.layers import ConvNormAV, DWBnReluConv
 from yolov3.layers import get_norm, get_activate, ShapeSpec
 from yolov3.modeling.backbone import Backbone, BACKBONE_REGISTRY
-# from yolov3.configs.default import get_default_config
+from yolov3.configs.default import get_default_config
 
 __all__ = ["MobileBase", "MobileNetV1", "build_mobilenetv1_backbone"]
 
@@ -14,13 +14,13 @@ class MobileBase(nn.Module):
     def __init__(self, input_channels,
                        output_channels,
                        stride,
-                       use_relu=True):
+                       expand_ratio):
         super(MobileBase, self).__init__()
 
-        self.conv_dw = DWConv(input_channels,
-                              output_channels,
-                              stride=stride,
-                              use_relu=use_relu)
+        self.conv_dw = DWBnReluConv(input_channels,
+                                    output_channels,
+                                    stride=stride,
+                                    expand_ratio=expand_ratio)
 
     def forward(self, x):
         out = self.conv_dw(x)
@@ -32,46 +32,48 @@ class MobileNetV1(Backbone):
                        num_classes=10,
                        out_features=None,
                        norm="BN",
-                       activate="ReLU"):
+                       activate="ReLU",
+                       expand_ratio=1):
         super(MobileNetV1, self).__init__()
 
         self.num_classes = num_classes
+        stem_out_channels = int(32 * expand_ratio)
         self._out_feature_stride = {"stem": 2}
-        self._out_feature_channels = {"stem": 32}
+        self._out_feature_channels = {"stem": stem_out_channels}
         out_channels = [128, 256, 512, 1024, 1024]
-        self.stem = ConvNormAV(input_channels, 32, 3, 2, 1,
-                                     norm=get_norm(norm, 32),
+        self.stem = ConvNormAV(input_channels, stem_out_channels, 3, 2, 1,
+                                     norm=get_norm(norm, stem_out_channels),
                                      activate=get_activate(activate, alpha=0.1))
 
-        dw1 = [MobileBase(32, 64, 1),
-               MobileBase(64, 128, 2)]
-        dw2 = [MobileBase(128, 128, 1),
-               MobileBase(128, 256, 2)]
-        dw3 = [MobileBase(256, 256, 1),
-               MobileBase(256, 512, 2)]
-        dw4 = [MobileBase(512, 512, 1),
-               MobileBase(512, 512, 1),
-               MobileBase(512, 512, 1),
-               MobileBase(512, 512, 1),
-               MobileBase(512, 512, 1),
-               MobileBase(512, 1024, 2)]
-        dw5 = [MobileBase(1024, 1024, 1)]
+        res1 = [MobileBase(32, 64, 1, expand_ratio),
+               MobileBase(64, 128, 2, expand_ratio)]
+        res2 = [MobileBase(128, 128, 1, expand_ratio),
+               MobileBase(128, 256, 2, expand_ratio)]
+        res3 = [MobileBase(256, 256, 1, expand_ratio),
+               MobileBase(256, 512, 2, expand_ratio)]
+        res4 = [MobileBase(512, 512, 1, expand_ratio),
+               MobileBase(512, 512, 1, expand_ratio),
+               MobileBase(512, 512, 1, expand_ratio),
+               MobileBase(512, 512, 1, expand_ratio),
+               MobileBase(512, 512, 1, expand_ratio),
+               MobileBase(512, 1024, 2, expand_ratio)]
+        res5 = [MobileBase(1024, 1024, 1, expand_ratio)]
         self.stages_and_names = []
         current_stride = self._out_feature_stride["stem"]
-        stages = [dw1, dw2, dw3, dw4, dw5]
+        stages = [res1, res2, res3, res4, res5]
         for i, blocks in enumerate(stages):
             stage = nn.Sequential(*blocks)
-            name = "dw"+str(i+1)
+            name = "res"+str(i+1)
             self.add_module(name, stage)
             self.stages_and_names.append((stage, name))
             if i != (len(stages)-1):
                 current_stride *= 2
             self._out_feature_stride[name] = current_stride
-            self._out_feature_channels[name] = out_channels[i]
+            self._out_feature_channels[name] = out_channels[i] * expand_ratio
 
         if num_classes is not None:
             self.avgpool = nn.AdaptiveAvgPool2d(1)
-            self.linear = nn.Linear(1024, num_classes)
+            self.linear = nn.Linear(int(1024 * expand_ratio), num_classes)
             nn.init.normal_(self.linear.weight, std=0.01)
             nn.init.constant_(self.linear.bias, 0)
             name = "linear"
@@ -134,8 +136,13 @@ def build_mobilenetv1_backbone(cfg, input_shape):
     out_features        = cfg.MODEL.MOBILENETV1.OUT_FEATURES
     in_channels         = input_shape.channels
     num_classes         = cfg.MODEL.MOBILENETV1.NUM_CLASSES
+    expand_ratio        = cfg.MODEL.MOBILENETV1.EXPAND_RATIO
 
     if num_classes is not None:
         out_features = None
-    return MobileNetV1(in_channels, num_classes, out_features, norm, activate)
+    return MobileNetV1(in_channels, num_classes, out_features, norm, activate, expand_ratio)
 
+
+if __name__ == "__main__":
+    net = build_mobilenetv1_backbone(None, None)
+    print(net)

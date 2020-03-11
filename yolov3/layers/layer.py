@@ -6,7 +6,7 @@ from torch.nn import functional as F
 import fvcore.nn.weight_init as weight_init
 
 __all__ = ["FrozenBatchNorm2d", "get_norm", "get_activate", "ConvNormAV",
-            "cat", "SELayer", "DWConv"]
+            "cat", "SELayer", "DWConv", "DWBnReluConv"]
 
 class FrozenBatchNorm2d(nn.Module):
     """
@@ -209,17 +209,14 @@ class DWConv(nn.Module):
                         out_channels,
                         kernel_size=3,
                         stride=1,
-                        padding=1,
-                        use_relu=False
+                        padding=1
                  ):
         super(DWConv,self).__init__()
         self.layers = nn.Sequential(
                 nn.Conv2d(input_channels, input_channels, kernel_size, stride, padding, groups=input_channels, bias=False),
                 nn.BatchNorm2d(input_channels),
-                nn.ReLU(inplace=True) if use_relu else None,
                 nn.Conv2d(input_channels, out_channels, kernel_size=1, stride=1, padding=0,bias=False),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(inplace=True) if use_relu else None,
+                nn.BatchNorm2d(out_channels)
         )
 
     def forward(self, x):
@@ -244,3 +241,25 @@ class SELayer(nn.Module):
         excitation = excitation.view(batch, channel, 1, 1)
         out = x * excitation
         return out
+
+class DWBnReluConv(nn.Module):
+    def __init__(self, input_channels,
+                        out_channels,
+                        kernel_size=3,
+                        stride=1,
+                        expand_ratio=1,
+                        padding=1
+                 ):
+        super(DWBnReluConv,self).__init__()
+        input_channels = int(input_channels * expand_ratio)
+        self.layers = nn.Sequential(
+                nn.Conv2d(input_channels, input_channels, kernel_size, stride, padding, groups=input_channels, bias=False),
+                nn.BatchNorm2d(input_channels),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(input_channels, int(out_channels*expand_ratio), kernel_size=1, stride=1, padding=0,bias=False),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return self.layers(x)
