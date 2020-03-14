@@ -229,12 +229,19 @@ class DarkNet(Backbone):
 
         if num_classes is not None:
             self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-            self.linear = nn.Linear(curr_channels, num_classes)
+            self.linear = nn.Sequential(
+                                nn.Linear(curr_channels, 512),
+                                nn.Dropout(0.5),
+                                nn.ReLU(),
+                                nn.Linear(512, num_classes)
+                            )
 
             # Sec 5.1 in "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour":
             # "The 1000-way fully-connected layer is initialized by
             # drawing weights from a zero-mean Gaussian with standard deviation of 0.01."
-            nn.init.normal_(self.linear.weight, std=0.01)
+            for stage in self.linear:
+                if isinstance(stage, nn.Linear):
+                    nn.init.normal_(stage.weight, std=0.01)
             name = "linear"
 
         if out_features is None:
