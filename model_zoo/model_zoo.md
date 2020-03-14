@@ -38,7 +38,7 @@
   - [ ] ShuffleNetV1
   - [ ] ShuffleNetV2
   - [ ] VGG19
-  - [ ] Sequence
+  - [ ] Squeezenet
   - [ ] MobileNetV3
   - [ ] Resnet18
   - [ ] Resnet50
