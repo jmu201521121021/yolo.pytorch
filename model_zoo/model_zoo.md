@@ -11,24 +11,24 @@
 
 - Darknet53
 
-  | name  | strides         | dataset  | top1 | top5 | device     | download |
-  | ----- | --------------- | -------- | ---- | ---- | ---------- | -------- |
-  | D53-0 | [2, 2, 2, 2, 2] | mnist    | 99.14| 99.99| gtx 1660ti |          |
-  | D53-1 | [2, 2, 2, 2, 2] | cifar-10 |      |      | gtx 1660ti |          |
+  | name  | strides         | dataset  | top1  | top5  | device     | download                                                     |
+  | ----- | --------------- | -------- | ----- | ----- | ---------- | ------------------------------------------------------------ |
+  | D53-0 | [2, 2, 2, 2, 2] | mnist    | 99.14 | 99.99 | gtx 1660ti | [BaiduDrive](https://pan.baidu.com/s/12E6K766X9Wr-G5PsRjsR6g) \| i0x2 |
+  | D53-1 | [2, 2, 2, 2, 2] | cifar-10 |       |       | gtx 1660ti |                                                              |
 
 - MobileNetV1
 
-  | name  | strides         | dataset  | top1 | top5 | device     | download                                                     |
-  | ----- | --------------- | -------- | ---- | ---- | ---------- | ------------------------------------------------------------ |
-  | MV1-0 | [2, 2, 2, 1, 1] | mnist    | 99.10| 99.99| gtx 1660ti |                                                              |
-  | MV1-1 | [2, 2, 2, 1, 1] | cifar-10 | 83.5 | 100  | gtx 1660ti | [BaiduDrive](https://pan.baidu.com/s/1EBZuHsj-_NO95xLr4NRCkQ) \|3gwq |
+  | name  | strides         | dataset  | top1  | top5  | device     | download                                                     |
+  | ----- | --------------- | -------- | ----- | ----- | ---------- | ------------------------------------------------------------ |
+  | MV1-0 | [2, 2, 2, 1, 1] | mnist    | 99.10 | 99.99 | gtx 1660ti | [BaiduDrive](https://pan.baidu.com/s/1UJ_6NTV9usi0lP5lveXfhQ) \|tv0h |
+  | MV1-1 | [2, 2, 2, 1, 1] | cifar-10 | 83.5  | 100   | gtx 1660ti | [BaiduDrive](https://pan.baidu.com/s/1EBZuHsj-_NO95xLr4NRCkQ) \|3gwq |
 
 - MobileNetV2
 
-  | name  | strides       | dataset  | top1 | top5 | device     | download |
-  | ----- | ------------- | -------- | ---- | ---- | ---------- | -------- |
-  | MV2-0 | [2, 2, 2,1,1] | mnist    | 99.19| 99.99| gtx 1660ti |          |
-  | MV2-1 | [2, 2, 2,1,1] | cifar-10 |      |      | gtx 1660ti |          |
+  | name  | strides       | dataset  | top1  | top5  | device     | download                                                     |
+  | ----- | ------------- | -------- | ----- | ----- | ---------- | ------------------------------------------------------------ |
+  | MV2-0 | [2, 2, 2,1,1] | mnist    | 99.19 | 99.99 | gtx 1660ti | [BaiduDrive](https://pan.baidu.com/s/1eq7zPEy61uyMBxBBgmM-ww) \| tzum |
+  | MV2-1 | [2, 2, 2,1,1] | cifar-10 |       |       | gtx 1660ti |                                                              |
 
 
 
