@@ -2,8 +2,8 @@
 
 ## Dataset Link
 
-- mnist,  link:
-- cifar-10 , link:  链接: https://pan.baidu.com/s/1tWauIgMRn1yP20qcEXtXrw 提取码: ub3w
+- mnist：[BaiduDrive](https://pan.baidu.com/s/1P6--cS_Nq9ZP7nUAxhM7Ow ) | 28hh
+- cifar-10 : [BaiduDrive](https://pan.baidu.com/s/1tWauIgMRn1yP20qcEXtXrw ) |ub3w
 
 
 
