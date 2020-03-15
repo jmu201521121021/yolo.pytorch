@@ -8,8 +8,8 @@ def get_parser():
     """
         Train mobilenetv2's config
     """
-    parser = argparse.ArgumentParser(description='Pytorch train Imagenet for mobilenetv2')
-    parser.add_argument('--data_root', default="/home/lin/mnist", type=str, help='path to dataset')
+    parser = argparse.ArgumentParser(description='Pytorch train cifar-10 for mobilenetv2')
+    parser.add_argument('--data_root', default="../data/dataset/cifar-10", type=str, help='path to dataset')
     parser.add_argument('--data_name', default="BuildMnistDataset", type=str, help='name of dataset')
     parser.add_argument('--num_workers', default=8, type=int, help='thead numbers of load data')
     parser.add_argument('--num_classes', default=10, type=int, help="classifier number")
@@ -31,19 +31,10 @@ def get_parser():
     parser.add_argument('--pretrained', default='', type=str, help='pre-trained model, if use pre-trained model, set pre-train model path')
 
     parser.add_argument('--train_transform', default=["ReadImage()",
-                                            "ResizeImage(320, 320)",
-                                            "CenterCrop(224)",
                                             "RandomFlip(0.5)",
-                                            "RandomNoise(probability=0.4)",
-                                            "RandomBlur(probability=0.4)",
-                                            "RandomHue(probability=0.4)",
-                                            "RandomSaturation(probability=0.4)",
-                                            "RandomContrast(probability=0.4)",
-                                            "RandomBrightness(probability=0.3)",
                                             "ToTensor()",
                                             "Normalize()" ,], type=list, help="train data transform")
     parser.add_argument('--test_transform', default=["ReadImage()",
-                                                     "ResizeImage(224, 224)",
                                                      "ToTensor()",
                                                      "Normalize()"], type=list, help="test data transform")
 

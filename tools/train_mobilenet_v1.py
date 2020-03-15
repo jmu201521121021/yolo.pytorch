@@ -8,8 +8,8 @@ def get_parser():
     """
         Train darnet53's config
     """
-    parser = argparse.ArgumentParser(description='Pytorch train Imagenet for darknet53')
-    parser.add_argument('--data_root', default="../data/dataset", type=str, help='path to dataset')
+    parser = argparse.ArgumentParser(description='Pytorch train Cifar for mobileNetv1')
+    parser.add_argument('--data_root', default="../data/dataset/cifar-10", type=str, help='path to dataset')
     parser.add_argument('--data_name', default="BuildCifar10Dataset", type=str, help='name of dataset')
     parser.add_argument('--num_workers', default=8, type=int, help='thead numbers of load data')
     parser.add_argument('--num_classes', default=10, type=int, help="classifier number")
@@ -25,25 +25,16 @@ def get_parser():
 
     parser.add_argument('--batch_size', default=512, type=int, help='batch size')
     parser.add_argument('--gpu_ids', default="0", type=str, help='gpu id,if multi gpu:[0, 1, ..], if cpu device, set None' )
-    parser.add_argument('--lr', default=0.001, type=float, help='initial learning rate')
+    parser.add_argument('--lr', default=0.1, type=float, help='initial learning rate')
     parser.add_argument('--momentum', default=0.9, type=float,help='momentum')
     parser.add_argument('--weight_decay', default=1e-4, type=float,help='weight decay (default: 1e-4)')
     parser.add_argument('--pretrained', default='', type=str, help='pre-trained model, if use pre-trained model, set pre-train model path')
 
     parser.add_argument('--train_transform', default=["ReadImage()",
-                                            # "ResizeImage(320, 320)",
-                                            # "CenterCrop(224)",
                                             "RandomFlip(0.5)",
-                                            "RandomNoise(probability=0.4)",
-                                            "RandomBlur(probability=0.4)",
-                                            "RandomHue(probability=0.4)",
-                                            "RandomSaturation(probability=0.4)",
-                                            "RandomContrast(probability=0.4)",
-                                            "RandomBrightness(probability=0.3)",
                                             "ToTensor()",
                                             "Normalize()" ,], type=list, help="train data transform")
     parser.add_argument('--test_transform', default=["ReadImage()",
-                                                     # "ResizeImage(224, 224)",
                                                      "ToTensor()",
                                                      "Normalize()"], type=list, help="test data transform")
 
