@@ -28,7 +28,7 @@
   | name  | strides       | dataset  | top1  | top5  | device     | download                                                     |
   | ----- | ------------- | -------- | ----- | ----- | ---------- | ------------------------------------------------------------ |
   | MV2-0 | [2, 2, 2,1,1] | mnist    | 99.19 | 99.99 | gtx 1660ti | [BaiduDrive](https://pan.baidu.com/s/1eq7zPEy61uyMBxBBgmM-ww) \| tzum |
-  | MV2-1 | [2, 2, 2,1,1] | cifar-10 |       |       | gtx 1660ti |                                                              |
+  | MV2-1 | [2, 2, 2,1,1] | cifar-10 | 82.9  | 99.2  | gtx 1660ti |                                                              |
 
 
 
