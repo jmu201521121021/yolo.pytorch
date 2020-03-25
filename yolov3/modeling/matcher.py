@@ -133,3 +133,66 @@ class Matcher(object):
 
         pred_inds_to_update = gt_pred_pairs_of_highest_quality[:, 1]
         match_labels[pred_inds_to_update] = 1
+
+class MatcherYOLO:
+    def __init__(self,ignore_thresh):
+        self.ignore_thresh =ignore_thresh
+
+    def matcher_predictions(self, match_quality_matrix):
+        """
+          match_quality_matrix (Tensor[float]): an MxN tensor, containing the
+                    pairwise quality between M ground-truth elements and N Anchor
+                    .All elements must be >= 0 (due to the us of `torch.nonzero`
+                    for selecting indices in :meth:`set_low_quality_matches_`).
+        """
+        assert match_quality_matrix.dim() == 2
+        if match_quality_matrix.numel() == 0:
+            default_matches = match_quality_matrix.new_full(
+                (match_quality_matrix.size(1),), 0, dtype=torch.int64
+            )
+            # When no gt boxes exist, we define IOU = 0 and therefore set labels
+            # to `-1'
+            default_match_labels = match_quality_matrix.new_full(
+                (match_quality_matrix.size(1),), -1, dtype=torch.int8
+            )
+            return default_matches, default_match_labels
+
+        assert torch.all(match_quality_matrix >= 0)
+
+        # match_quality_matrix is M (gt) x N (anchor)
+        # Max over anchor elements (dim 1) to find best anchor candidate for each gt
+        matched_vals, matches = match_quality_matrix.max(dim=0)
+
+        match_labels = matches.new_full(matches.size(), 0, dtype=torch.int8)
+
+        low_high = matched_vals >= self.ignore_thresh
+        match_labels[low_high] = 1
+
+        return matches, match_labels
+
+
+    def matcher_anchor(self, match_quality_matrix):
+        """
+          match_quality_matrix (Tensor[float]): an MxN tensor, containing the
+                    pairwise quality between M ground-truth elements and N Anchor
+                    .All elements must be >= 0 (due to the us of `torch.nonzero`
+                    for selecting indices in :meth:`set_low_quality_matches_`).
+        """
+        assert match_quality_matrix.dim() == 2
+        if match_quality_matrix.numel() == 0:
+            default_matches = match_quality_matrix.new_full(
+                (match_quality_matrix.size(1),), 0, dtype=torch.int64
+            )
+            # When no gt boxes exist, we define IOU = 0 and therefore set labels
+            # to `-1'
+            default_match_labels = match_quality_matrix.new_full(
+                (match_quality_matrix.size(1),), -1, dtype=torch.int8
+            )
+            return default_matches, default_match_labels
+
+        assert torch.all(match_quality_matrix >= 0)
+
+        # match_quality_matrix is M (gt) x N (anchor)
+        # Max over anchor elements (dim 1) to find best anchor candidate for each gt
+        matched_vals, matches = match_quality_matrix.max(dim=1)
+        return matches
