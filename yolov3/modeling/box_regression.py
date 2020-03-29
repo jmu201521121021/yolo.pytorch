@@ -131,12 +131,50 @@ class Box2BoxTransform(object):
         target_ctr_y = (target_boxes[:, 1] + 0.5 * target_heights) * ft_h
 
 
-        tx = target_ctr_x - math.floor(target_ctr_x)
-        ty = target_ctr_y - math.floor(target_ctr_y)
+        tx = target_ctr_x - torch.floor(target_ctr_x)
+        ty = target_ctr_y - torch.floor(target_ctr_y)
 
-        tw = math.log(target_widths / cell_anchors[0])
-        th = math.log(target_heights / cell_anchors[1])
+        tw = torch.log(target_widths / cell_anchors[0])
+        th = torch.log(target_heights / cell_anchors[1])
 
         deltas = torch.stack((tx, ty, tw, th), dim=1)
         return deltas
 
+    def apply_yolo_deltas(self, deltas_xy, deltas_wh, boxes, net_w, net_h, ft_w, ft_h):
+        """
+        Apply transformation `deltas` (tx, ty, tw, th) to `boxes`.
+
+        Args:
+            deltas (Tensor): transformation deltas of shape (N,k, 4), where k >= 1.
+            boxes (Tensor): boxes to transform, of shape (N, 4)
+        """
+        boxes = boxes.to(deltas_xy.dtype)
+
+        widths = boxes[:, :, :, 2]
+        heights = boxes[:, :, :, 3]
+        ctr_x = boxes[:, :, :,  0]
+        ctr_y = boxes[:, :, :, 1]
+
+        wx, wy, ww, wh = self.weights
+        tx = deltas_xy[:, :, :, 0] / wx
+        ty = deltas_xy[:, :, :, 1] / wy
+        tw = deltas_wh[:, :, :, 0] / ww
+        th = deltas_wh[:, :, :, 1] / wh
+
+        # Prevent sending too large values into torch.exp()
+        tw = torch.clamp(tw, max=self.scale_clamp)
+        th = torch.clamp(th, max=self.scale_clamp)
+
+        pred_ctr_x = (tx + ctr_x) / ft_w
+        pred_ctr_y = (ty + ctr_y) / ft_h
+        pred_w = torch.exp(tw) * widths / net_w
+        pred_h = torch.exp(th) * heights / net_h
+
+        N, HW, A, _ = deltas_xy.shape
+        pred_boxes = torch.zeros(N, HW, A, 4)
+        pred_boxes[:, :, :, 0] = pred_ctr_x - 0.5 * pred_w  # x1
+        pred_boxes[:, :, :, 1] = pred_ctr_y - 0.5 * pred_h  # y1
+        pred_boxes[:, :, :, 2] = pred_ctr_x + 0.5 * pred_w  # x2
+        pred_boxes[:, :, :, 3] = pred_ctr_y + 0.5 * pred_h  # y2
+
+        return pred_boxes

@@ -19,7 +19,9 @@ from  .meta_arch import (
     Yolov3Head,
     Yolov3,
 )
-
+from  .losses import (
+    CELossNoSoftmax,
+)
 from  .matcher import Matcher
 from .anchor_generator import ANCHOR_GENERATOR_REGISTRY, build_anchor_generator
 

@@ -211,7 +211,7 @@ class YoloAnchorGenerator(nn.Module):
                 shift_x.size(), 0, dtype=torch.float
             )
             shifts = torch.stack((shift_x, shift_y, shift_w_h, shift_w_h), dim=1)
-            shifts = (shifts.view(-1, 1, 4) + base_anchors.view(1, -1, 4)).reshape(-1, 4)
+            shifts = (shifts.view(-1, 1, 4) + base_anchors.view(1, -1, 4))
             anchors.append(shifts)
         return anchors
 
@@ -251,16 +251,17 @@ class YoloAnchorGenerator(nn.Module):
         grid_sizes = [ feature_map.shape[-2:] for feature_map in features]
         anchors_over_all_feature_maps = self.grid_anchors(grid_sizes)
 
-        anchors_in_image = []
+        anchors= []
         for anchors_per_feature_map in anchors_over_all_feature_maps:
-            boxes = Boxes(anchors_per_feature_map)
-            anchors_in_image.append(boxes)
+            boxes =  [copy.deepcopy(anchors_per_feature_map) for _ in range(num_images)]
+            boxes = torch.stack(boxes, 0)
+            anchors.append(boxes)
 
         cell_anchors = [Boxes(cell_anchors) for cell_anchors in self.cell_anchors]
         cell_anchors = Boxes.cat(cell_anchors)
 
-        anchors = [copy.deepcopy(anchors_in_image) for _ in range(num_images)]
-        #cell_anchors = [copy.deepcopy(cell_anchors) for _ in range(num_images)]
+        #anchors = [copy.deepcopy(anchors_in_image) for _ in range(num_images)]
+        cell_anchors = [copy.deepcopy(cell_anchors) for _ in range(num_images)]
 
         return anchors, cell_anchors
 
@@ -278,7 +279,7 @@ if __name__ == '__main__':
     print(len(anchor_generator.cell_anchors))
     features = [torch.zeros(2, 78,8, 8), torch.zeros(2, 78, 16, 16), torch.zeros(2, 78, 32, 32)]
     anchors, cell_anchors = anchor_generator.forward(features)
-    print(cell_anchors)
+    print("anchor_num:".format(anchor_generator.num_cell_anchors))
     for anchor in anchors:
         print(len(anchor))
     #print(anchors)

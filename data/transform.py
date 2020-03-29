@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import numbers
 import collections
+from yolov3.structures import  Boxes
 
 import data.function as F
 
@@ -59,13 +60,21 @@ class ToTensor(object):
 
     def __call__(self, sample):
         image, label = sample['image'], sample['label']
-
+        if "boxes" in sample:
+            boxes = sample["boxes"]
+            assert isinstance(boxes, np.ndarray), "not support format {}".format(type(boxes))
+            boxes = torch.from_numpy(boxes).float()
+            boxes = Boxes(boxes)
+            sample["boxes"] = boxes
         # swap color axis because
         # numpy image: H x W x C
         # torch image: C X H X W
         image = image.transpose((2, 0, 1))
-        return {'image': torch.from_numpy(image).float(),
-                'label': torch.from_numpy(label).long()}
+        sample["image"] = torch.from_numpy(image).float()
+        sample["label"] = torch.from_numpy(label).long()
+
+        return  sample
+
 class TensorToNumpy(object):
     """Convert Tensors in sample to ndarray."""
     def __call__(self, sample):
