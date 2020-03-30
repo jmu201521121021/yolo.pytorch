@@ -1,4 +1,3 @@
-
 import xml.etree.ElementTree as ET
 import numpy as np
 from data.dataset.base_dataset import  BaseDataset
@@ -6,8 +5,8 @@ from data.dataset.build import DATASET_REGISTRY
 
 __all__ = ["BuildVocDataset"]
 
-sets=[('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
-
+# sets=[('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
+sets=[('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val')]  # for test kmeans
 
 classes = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
            "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike",
@@ -59,7 +58,6 @@ def get_voc_annotations(cfg):
     """
     Args
         cfg(easydict): config
-
     Returns
         items(list):  image_path, boxes, label of all image
     """
@@ -88,4 +86,3 @@ if __name__ == "__main__":
     cfg = get_default_config()
     cfg.DATASET.DATA_ROOT = "../../../dataset/voc_dataset/"
     voc_dataset = BuildVocDataset(cfg)
-
