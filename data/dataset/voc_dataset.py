@@ -1,3 +1,4 @@
+
 import xml.etree.ElementTree as ET
 import numpy as np
 from data.dataset.base_dataset import  BaseDataset
@@ -6,6 +7,7 @@ from data.dataset.build import DATASET_REGISTRY
 __all__ = ["BuildVocDataset"]
 
 sets=[('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
+# if test for kmeans_anchor, just use the first four dataset
 
 classes = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
            "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike",

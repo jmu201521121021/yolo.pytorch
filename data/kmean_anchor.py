@@ -115,8 +115,8 @@ if __name__ == "__main__":
     cfg.DATASET.DATA_ROOT = "./dataset"
     for i, item in enumerate(get_voc_annotations(cfg)):
         for box in item["boxes"]:
-            w = (box[2] - box[0])
-            h = (box[3] - box[1])
+            w = (box[2] - box[0])/item["width"]
+            h = (box[3] - box[1])/item["height"]
             gt_boxes_size_list.append((w, h))
             # print(i, ' ', w, ' ', h)
         # print(item)
