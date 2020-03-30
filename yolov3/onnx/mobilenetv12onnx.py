@@ -1,5 +1,8 @@
 import numpy as np
 import torch
+import cv2
+from torch.autograd import Variable
+import torch.nn.functional as F
 from torch.onnx import OperatorExportTypes
 from yolov3.modeling import build_backbone
 
@@ -9,7 +12,14 @@ from yolov3.layers import  ShapeSpec
 # dataset : cifar-10
 def mobilenetv1():
 
-    x = torch.randn(1, 3, 32, 32, requires_grad=True)
+    # x = torch.randn(1, 3, 32, 32, requires_grad=True)
+    x = cv2.imread("../../data/dataset/val/8/108.jpg")
+    x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB)
+    x = np.transpose(x, (2, 0, 1)).astype(np.float32)
+    x = x / 255.0
+    x = Variable(torch.from_numpy(x))
+    x = x.unsqueeze(0)
+
     cfg = get_default_config()
     cfg.MODEL.BACKBONE.NAME = "build_mobilenetv1_backbone"
     input_shape = ShapeSpec(channels=3, height=32, width=32, stride=32)
@@ -19,7 +29,8 @@ def mobilenetv1():
     net.load_state_dict(torch.load("../../tools/weights/mobilenetv1_140_0.1_cifar10_20200314_82.3.pth"))
 
     tensor_out = net(x)
-    # print("the onnx result is {}".format(tensor_out["linear"]))
+    torch_score = F.softmax(tensor_out["linear"], -1)
+    print("the torch result is {}".format(torch_score))
     torch.onnx.export(net,  # model being run
                       x,  # model input (or a tuple for multiple inputs)
                       "./weights/mobilenetv1.onnx",  # where to save the model (can be a file or file-like object)
@@ -46,7 +57,9 @@ def mobilenetv1():
 
     # compare ONNX Runtime and PyTorch results
     np.testing.assert_allclose(to_numpy(tensor_out["linear"]), ort_outs[0], rtol=1e-01, atol=1e-05)
-    # print("the onnx result is {}".format(ort_outs[0]))
+    out = torch.Tensor(ort_outs[0])
+    onnx_score = F.softmax(out, -1)
+    print("the onnx result is {}".format(onnx_score))
     print("Exported model has been tested with ONNXRuntime, and the result looks good!")
 
 
