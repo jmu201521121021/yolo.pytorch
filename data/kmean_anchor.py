@@ -32,7 +32,7 @@ class KmeanAnchor:
 
         # todo kmean
         N = boxes_size_list.shape[0]
-        random_indices = [random.randrange(N) for i in range(self.k)]
+        random_indices = [random.randint(0, N) for i in range(self.k)]
 
         centroids = boxes_size_list[random_indices]
         num = centroids.shape[0]
@@ -88,7 +88,7 @@ class KmeanAnchor:
             w = anchor_list[:, 0]
             index = np.argsort(w)
             for anchor_size in anchor_list[index]:
-                line = str(anchor_size[0]) + "," + str(anchor_size[1]) + "\n"
+                line = str(anchor_size[0]*self.net_width) + "," + str(anchor_size[1]*self.net_height) + "\n"
                 fp.write(line)
 
     def IOU(self, annotation_array, centroids):
