@@ -53,9 +53,7 @@ class KmeanAnchor:
                 centroids[j] = centroid_sums[j] / (np.sum(np.array(assignments == j, dtype=np.uint8)))
             diff = abs(distances_sum - distance_sum_pre)
 
-            avg_iou = 0
-            for i in range(N):
-                avg_iou += matrix_iou[i, assignments[i]]
+            avg_iou = np.sum(np.max(matrix_iou, axis=1))
 
             print("iteration: {}, diff: {}, avg_IOU: {:.2f}%".format(iteration, diff, (avg_iou*100) / N))
 
@@ -68,7 +66,7 @@ class KmeanAnchor:
             # record previous iter
             distance_sum_pre = distances_sum
             assignments_pre = assignments.copy()
-        self.save_anchor_size(centroids)
+        # self.save_anchor_size(centroids)
 
 
     def save_anchor_size(self, anchor_list):
@@ -120,7 +118,7 @@ if __name__ == "__main__":
     gen_anchor_size = KmeanAnchor(416, 416, 9)
     gt_boxes_size_list = []
     cfg = get_default_config()
-    cfg.DATASET.DATA_ROOT = "../../dataset/voc_dataset/"
+    cfg.DATASET.DATA_ROOT = "./dataset"
     for i, item in enumerate(get_voc_annotations(cfg)):
         for box in item["boxes"]:
             w = (box[2] - box[0])/item["width"]
