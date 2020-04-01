@@ -1,7 +1,6 @@
 import os
 import numpy as np
-import random
-from data.dataset.voc_dataset import get_voc_annotations, BuildVocDataset
+from data.dataset.voc_dataset import get_voc_annotations
 from yolov3.configs.default import get_default_config
 
 __all__ = ["KmeanAnchor"]
@@ -32,10 +31,7 @@ class KmeanAnchor:
         boxes_size_list = boxes_size_list * np.array([self.net_width, self.net_height])
 
         N = boxes_size_list.shape[0]
-        centroids = boxes_size_list[np.random.choice(range(N), self.k)]#[random.randint(0, N) for i in range(self.k)]
-        centroids = np.array(centroids)
-
-        # num = centroids.shape[0]
+        centroids = boxes_size_list[np.random.choice(range(N), self.k)]  # [random.randint(0, N) for i in range(self.k)]
 
         distance_sum_pre = -1
         assignments_pre = -1 * np.ones(N, dtype=np.long)
@@ -50,16 +46,19 @@ class KmeanAnchor:
             centroid_sums = np.zeros(centroids.shape)
             for i in range(N):
                 centroid_sums[assignments[i]] += boxes_size_list[i]
+            if (assignments == assignments_pre).all():
+                print("cluster result is no more change.\n")
+                break
             for j in range(self.k):
                 centroids[j] = centroid_sums[j] / (np.sum(np.array(assignments == j, dtype=np.uint8)))
             diff = abs(distances_sum - distance_sum_pre)
 
-            print("iteration: {},distance: {}, diff: {}, avg_IOU: {}".format(iteration, distances_sum, diff,
-                                                                               np.sum(1 - distance) / (N * self.k)))
+            avg_iou = 0
+            for i in range(N):
+                avg_iou += matrix_iou[i, assignments[i]]
 
-            if (assignments == assignments_pre).all():
-                print("cluster result is no more change.\n")
-                break
+            print("iteration: {}, diff: {}, avg_IOU: {:.2f}%".format(iteration, diff, (avg_iou*100) / N))
+
             # if diff < eps:
             #     print("eps is arrived.\n")
             #     break
@@ -85,7 +84,7 @@ class KmeanAnchor:
             index = np.argsort(w)
             for anchor_size in anchor_list[index]:
                 line = str(anchor_size[0]) + "," + str(anchor_size[1]) + "\n"
-                print("anchor:{}\n".format(line))
+                # print("anchor:{}\n".format(line))
                 fp.write(line)
 
     def pairwise_iou(self, boxes1, boxes2):
@@ -105,7 +104,6 @@ class KmeanAnchor:
         area1 = boxes1[:, 0] * boxes1[:, 1]
         area2 = boxes2[:, 0] * boxes2[:, 1]
 
-
         min_w = np.minimum(boxes1[:, None, 0], boxes2[:, 0])
         min_h = np.minimum(boxes1[:, None, 1], boxes2[:, 1])
 
@@ -113,25 +111,9 @@ class KmeanAnchor:
 
         iou = inter / (area1[:, None] + area2 - inter)
 
-        iou [iou<0] = 0
+        iou[iou < 0] = 0
 
         return iou
-
-    def IOU(self, annotation_array, centroids):
-        all_iou = []
-        w, h = annotation_array
-        for centroid in centroids:
-            c_w, c_h = centroid
-            if c_w >= w and c_h >= h:
-                iou = w * h / (c_w * c_h)
-            elif c_w >= w and c_h <= h:
-                iou = w * c_h / (w * h + (c_w - w) * c_h)
-            elif c_w <= w and c_h >= h:
-                iou = c_w * h / (w * h + (c_h - h) * c_w)
-            else:
-                iou = (c_w * c_h) / (w * h)
-            all_iou.append(iou)
-        return np.array(all_iou, np.float32)
 
 
 if __name__ == "__main__":
@@ -146,28 +128,8 @@ if __name__ == "__main__":
             gt_boxes_size_list.append([w, h])
             # print(i, ' ', w, ' ', h)
         # print(item)
-        # if i == 2:
+        # if i == 100:
         #     break
-    # gt_boxes_size_list = [
-    #     [0.1, 0.2],
-    #     [0.5, 0.6],
-    #     [0.11, 0.22],
-    #     [0.51, 0.62],
-    #     [0.13, 0.23],
-    #     [0.53, 0.63],
-    #     [0.14, 0.25],
-    #     [0.53, 0.65],
-    #     [0.16, 0.25],
-    #     [0.56, 0.66],
-    #     [0.17, 0.24],
-    #     [0.57, 0.68],
-    #     [0.14, 0.23],
-    #     [0.18, 0.26],
-    #     [0.54, 0.66],
-    #     [0.16, 0.28],
-    #     [0.16, 0.27],
-    #     [0.57, 0.65]
-    # ]
     gt_boxes_w_h = np.array(gt_boxes_size_list)
     gen_anchor_size.kmean_gen_anchor_size(gt_boxes_w_h)
 
