@@ -6,7 +6,7 @@ from data.dataset.build import DATASET_REGISTRY
 
 __all__ = ["BuildVocDataset"]
 
-sets=[('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
+
 # if test for kmeans_anchor, just use the first four dataset
 
 classes = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
@@ -55,7 +55,8 @@ def convert_annotation(year, image_id, data_root):
     }
     return  item
 
-def get_voc_annotations(cfg):
+def get_voc_annotations(cfg,
+                        sets=[('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test')]):
     """
     Args
         cfg(easydict): config
@@ -64,6 +65,7 @@ def get_voc_annotations(cfg):
     """
     data_root = cfg.DATASET.DATA_ROOT
     items = []
+
     for year, image_set in sets:
         image_ids = open('%s/VOCdevkit/VOC%s/ImageSets/Main/%s.txt' % (data_root, year, image_set)).read().strip().split()
         for image_id in image_ids:
@@ -87,24 +89,3 @@ if __name__ == "__main__":
     cfg = get_default_config()
     cfg.DATASET.DATA_ROOT = "../../../dataset/voc_dataset/"
     voc_dataset = BuildVocDataset(cfg)
-
-    # visualize the gt_box in img_sets
-    # import cv2 as cv
-    # cfg.DATASET.DATA_ROOT = "../dataset"
-    # sample = get_voc_annotations(cfg)
-    # for i, item in enumerate(sample):
-    #     if i == 2:
-    #         break
-    #     img = cv.imread(item["image_path"])
-    #     for j, box in enumerate(item["boxes"]):
-    #         xmin = int(box[0])
-    #         ymin = int(box[1])
-    #         xmax = int(box[2])
-    #         ymax = int(box[3])
-    #         point_color = (0, 255, 0)
-    #         thickness = 1
-    #         lineType = 4
-    #         cv.rectangle(img, (xmin, ymin), (xmax, ymax), point_color, thickness, lineType)
-    #     cv.imshow('voc_dataset', img)
-    #     cv.waitKey(1000)
-    #     cv.destroyAllWindows()

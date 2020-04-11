@@ -57,16 +57,9 @@ class KmeanAnchor:
 
             print("iteration: {}, diff: {}, avg_IOU: {:.2f}%".format(iteration, diff, (avg_iou*100) / N))
 
-            # if diff < eps:
-            #     print("eps is arrived.\n")
-            #     break
-            # if iteration > iterations:
-            #     print("iteration is arrived.\n")
-            #     break
-            # record previous iter
             distance_sum_pre = distances_sum
             assignments_pre = assignments.copy()
-        # self.save_anchor_size(centroids)
+        self.save_anchor_size(centroids)
 
 
     def save_anchor_size(self, anchor_list):
@@ -80,11 +73,12 @@ class KmeanAnchor:
         with open(os.path.join(self.out_dir, file_name), 'w') as fp:
             w = anchor_list[:, 0]
             index = np.argsort(w)
+            strs = ""
             for anchor_size in anchor_list[index]:
-                line = str(anchor_size[0]) + "," + str(anchor_size[1]) + "\n"
-                # print("anchor:{}\n".format(line))
+                line = str(int(anchor_size[0]+0.5)) + "," + str(int(anchor_size[1]+0.5)) + "\n"
+                strs = "{} {}".format(strs,str(int(anchor_size[0]+0.5)) + "," + str(int(anchor_size[1]+0.5)))
                 fp.write(line)
-
+            print(strs)
     def pairwise_iou(self, boxes1, boxes2):
         """
         Given two lists of boxes of size N and M,
@@ -118,8 +112,9 @@ if __name__ == "__main__":
     gen_anchor_size = KmeanAnchor(416, 416, 9)
     gt_boxes_size_list = []
     cfg = get_default_config()
-    cfg.DATASET.DATA_ROOT = "./dataset"
-    for i, item in enumerate(get_voc_annotations(cfg)):
+    cfg.DATASET.DATA_ROOT = "../../dataset/voc_dataset"
+    sets = [('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val')]
+    for i, item in enumerate(get_voc_annotations(cfg, sets)):
         for box in item["boxes"]:
             w = (box[2] - box[0])/item["width"]
             h = (box[3] - box[1])/item["height"]

@@ -7,7 +7,7 @@ import torch
 
 
 torch_ver = [int(x) for x in torch.__version__.split(".")[:2]]
-assert torch_ver >= [1, 3], "Requires PyTorch >= 1.3"
+assert torch_ver >= [1, 2], "Requires PyTorch >= 1.2"
 
 def get_version():
     init_py_path = path.join(path.abspath(path.dirname(__file__)), "yolov3", "__init__.py")
