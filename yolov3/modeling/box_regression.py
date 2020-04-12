@@ -35,40 +35,40 @@ class Box2BoxTransform(object):
         self.weights = weights
         self.scale_clamp = scale_clamp
 
-    def get_deltas(self, src_boxes, target_boxes):
-        """
-        Get box regression transformation deltas (dx, dy, dw, dh) that can be used
-        to transform the `src_boxes` into the `target_boxes`. That is, the relation
-        ``target_boxes == self.apply_deltas(deltas, src_boxes)`` is true (unless
-        any delta is too large and is clamped).
-
-        Args:
-            src_boxes (Tensor): source boxes, e.g., object proposals
-            target_boxes (Tensor): target of the transformation, e.g., ground-truth
-                boxes.
-        """
-        assert isinstance(src_boxes, torch.Tensor), type(src_boxes)
-        assert isinstance(target_boxes, torch.Tensor), type(target_boxes)
-
-        src_widths = src_boxes[:, 2] - src_boxes[:, 0]
-        src_heights = src_boxes[:, 3] - src_boxes[:, 1]
-        src_ctr_x = src_boxes[:, 0] + 0.5 * src_widths
-        src_ctr_y = src_boxes[:, 1] + 0.5 * src_heights
-
-        target_widths = target_boxes[:, 2] - target_boxes[:, 0]
-        target_heights = target_boxes[:, 3] - target_boxes[:, 1]
-        target_ctr_x = target_boxes[:, 0] + 0.5 * target_widths
-        target_ctr_y = target_boxes[:, 1] + 0.5 * target_heights
-
-        wx, wy, ww, wh = self.weights
-        dx = wx * (target_ctr_x - src_ctr_x) / src_widths
-        dy = wy * (target_ctr_y - src_ctr_y) / src_heights
-        dw = ww * torch.log(target_widths / src_widths)
-        dh = wh * torch.log(target_heights / src_heights)
-
-        deltas = torch.stack((dx, dy, dw, dh), dim=1)
-        assert (src_widths > 0).all().item(), "Input boxes to Box2BoxTransform are not valid!"
-        return deltas
+    # def get_deltas(self, src_boxes, target_boxes):
+    #     """
+    #     Get box regression transformation deltas (dx, dy, dw, dh) that can be used
+    #     to transform the `src_boxes` into the `target_boxes`. That is, the relation
+    #     ``target_boxes == self.apply_deltas(deltas, src_boxes)`` is true (unless
+    #     any delta is too large and is clamped).
+    #
+    #     Args:
+    #         src_boxes (Tensor): source boxes, e.g., object proposals
+    #         target_boxes (Tensor): target of the transformation, e.g., ground-truth
+    #             boxes.
+    #     """
+    #     assert isinstance(src_boxes, torch.Tensor), type(src_boxes)
+    #     assert isinstance(target_boxes, torch.Tensor), type(target_boxes)
+    #
+    #     src_widths = src_boxes[:, 2] - src_boxes[:, 0]
+    #     src_heights = src_boxes[:, 3] - src_boxes[:, 1]
+    #     src_ctr_x = src_boxes[:, 0] + 0.5 * src_widths
+    #     src_ctr_y = src_boxes[:, 1] + 0.5 * src_heights
+    #
+    #     target_widths = target_boxes[:, 2] - target_boxes[:, 0]
+    #     target_heights = target_boxes[:, 3] - target_boxes[:, 1]
+    #     target_ctr_x = target_boxes[:, 0] + 0.5 * target_widths
+    #     target_ctr_y = target_boxes[:, 1] + 0.5 * target_heights
+    #
+    #     wx, wy, ww, wh = self.weights
+    #     dx = wx * (target_ctr_x - src_ctr_x) / src_widths
+    #     dy = wy * (target_ctr_y - src_ctr_y) / src_heights
+    #     dw = ww * torch.log(target_widths / src_widths)
+    #     dh = wh * torch.log(target_heights / src_heights)
+    #
+    #     deltas = torch.stack((dx, dy, dw, dh), dim=1)
+    #     assert (src_widths > 0).all().item(), "Input boxes to Box2BoxTransform are not valid!"
+    #     return deltas
 
     def apply_deltas(self, deltas, boxes):
         """

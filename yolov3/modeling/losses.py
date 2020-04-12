@@ -15,13 +15,12 @@ class CELossNoSoftmax(nn.Module):
     def forward(self, x, target):
         loss = self.cross_entropy_loss(-x, target)
         loss= -torch.log(loss)
-        if self.reduction == "mean" or self.reduction is "none":
+        if self.reduction == "mean":
             return loss.mean()
         elif self.reduction == "sum":
             return  loss.sum()
         else:
-            print("not support reduction format:{}".format(self.reduction))
-            return
+            return loss
 
 class YoloV3RegLoss(nn.Module):
     def __init__(self, redution="mean"):

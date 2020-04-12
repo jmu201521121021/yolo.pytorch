@@ -236,7 +236,7 @@ class YoloAnchorGenerator(nn.Module):
             h = anchor_w_h[1]
             anchors.append([0, 0, w, h])
 
-        return torch.tensor(anchors)
+        return torch.tensor(anchors, dtype=torch.float)
 
     def forward(self, features):
         """

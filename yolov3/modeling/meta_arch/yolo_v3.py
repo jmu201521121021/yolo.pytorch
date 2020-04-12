@@ -38,13 +38,13 @@ class YOLOLayer(nn.Module):
         self.box2BoxTransform = Box2BoxTransform((1.0, 1.0, 1.0, 1.0))
         self.net_w = net_w
         self.net_h = net_h
-        self.reg_criterion = torch.nn.MSELoss()
-        self.cls_criterion = torch.nn.CrossEntropyLoss()
-        self.confidence_criterion = torch.nn.CrossEntropyLoss()
+        # self.reg_criterion = torch.nn.MSELoss()
+        # self.cls_criterion = torch.nn.CrossEntropyLoss()
+        # self.confidence_criterion = torch.nn.CrossEntropyLoss()
 
-        self.criterion_reg = nn.BCELoss()
-        self.criterion_cls = CELossNoSoftmax()
-        self.criterion_confidence = nn.BCELoss()
+        self.criterion_reg = nn.MSELoss(reduction="none")
+        self.criterion_cls = CELossNoSoftmax(reduction="none")
+        self.criterion_confidence = nn.BCELoss(reduction="none")
 
 
     def setTarget(self, gt_boxes, gt_classes):
@@ -83,6 +83,19 @@ class YOLOLayer(nn.Module):
             min_anchor_idx = 0
             max_anchor_idx = 0
             feature_index = 0
+
+            delta_xy_batch = []
+            delta_wh_batch = []
+            delat_cls_batch = []
+            gt_anchors_reg_delta_batch = []
+            gt_anchor_cls_batch = torch.cat([copy.deepcopy(self.gt_classes.view(-1)) for _ in range(len(yolo_layer_out))], 0)
+            gt_scale_batch = torch.cat([copy.deepcopy(self.get_gt_scale()) for _ in range(len(yolo_layer_out))], 0).view(-1, 1)
+            gt_scale_batch = gt_scale_batch.repeat(1, 2)
+            conf_batch = []
+            delat_weight_batch = []
+            conf_weight_batch = []
+
+
             for pre_box_xy_per_ft, pre_box_wh_per_ft, pre_cls_per_ft, pre_confidence_ft,\
                     ft_w, ft_h, anchor_per_ft in zip(pre_box_xy, pre_box_wh, pre_cls, pre_confidence, feature_map_w, feature_map_h, anchors):
 
@@ -92,31 +105,47 @@ class YOLOLayer(nn.Module):
 
                 delta_xy, delta_wh, delta_cls = self.get_box_cls_pre(pre_box_xy_per_ft, pre_box_wh_per_ft, pre_cls_per_ft, ft_w, ft_h,
                                      anchor_matched_idxs_ft, min_anchor_idx, max_anchor_idx)
-
-                min_anchor_idx = max_anchor_idx
-
-                feature_index += 1
+                delta_xy_batch.append(delta_xy)
+                delta_wh_batch.append(delta_wh)
+                delat_cls_batch.append(delta_cls)
 
                 delta_weight = torch.zeros(anchor_matched_ft_idxs.size())
                 delta_weight[anchor_matched_ft_idxs] = 1
 
-                gt_anchors_reg_deltas = self.get_ground_truth(anchor_gt, self.gt_boxes,  ft_w, ft_h)
+                delat_weight_batch.append(delta_weight)
 
-                # pre boxes
-
+                gt_anchors_reg_deltas = self.get_ground_truth(anchor_gt, self.gt_boxes, ft_w, ft_h)
                 confidence_weight = self.get_confidence_weight(pre_box_xy_per_ft, pre_box_wh_per_ft, anchor_per_ft,
-                                                 ft_w, ft_w)
+                                                                ft_w, ft_h)
+                gt_anchors_reg_delta_batch.append(gt_anchors_reg_deltas)
+                conf_weight_batch.append(confidence_weight)
+                conf_batch.append(pre_confidence_ft.view(-1))
 
+                min_anchor_idx = max_anchor_idx
+                feature_index += 1
 
+            delta_xy_batch = torch.cat(delta_xy_batch, 0)
+            delta_wh_batch = torch.cat(delta_wh_batch, 0)
+            delat_cls_batch = torch.cat(delat_cls_batch, 0)
+            gt_anchors_reg_delta_batch = torch.cat(gt_anchors_reg_delta_batch, 0)
 
-                # gt_classes = self.gt_classes
-                #
-                # reg_loss = self.reg_criterion(pre_box_wh_pre_ft, gt_anchors_reg_deltas[:, 2:]) + \
-                #            self.reg_criterion(pre_box_xy_per_ft, gt_anchors_reg_deltas[:, :2])
-                # cls_loss = self.cls_criterion(pre_cls_ft, gt_classes)
-                #
-                # loss = loss + reg_loss * delta_weight + cls_loss * delta_weight
-            #return self.losses(gt_classes, gt_anchors_reg_deltas, yolo_layer_out)
+            delat_weight_batch = torch.cat(delat_weight_batch, 0)
+            conf_weight_batch = torch.cat(conf_weight_batch, 0)
+            conf_batch = torch.cat(conf_batch, 0)
+
+            reg_loss = self.criterion_reg(delta_xy_batch * gt_scale_batch, gt_anchors_reg_delta_batch[:, :2] * gt_scale_batch) + \
+                        self.criterion_reg(delta_wh_batch * gt_scale_batch, gt_anchors_reg_delta_batch[:, 2:] * gt_scale_batch)
+            reg_loss = torch.sum(torch.sum(reg_loss * delat_weight_batch[:,None], dim=1) / 2.0) / torch.sum(delat_weight_batch)
+
+            print("pre cls {} gt cls{}".format(delat_cls_batch.shape, gt_anchor_cls_batch.shape))
+            cls_loss = torch.sum(self.criterion_cls(delat_cls_batch, gt_anchor_cls_batch) * delat_weight_batch) / torch.sum(delat_weight_batch)
+
+            gt_conf_batch = torch.zeros(conf_batch.shape[0]).to(conf_batch)
+
+            conf_loss = torch.sum(self.criterion_confidence(conf_batch, gt_conf_batch) * conf_weight_batch) / torch.sum(conf_weight_batch)
+
+            loss = reg_loss + cls_loss + conf_loss
+
             return loss
     @torch.no_grad()
     def get_anchor_match_index(self, cell_anchors, target_boxes):
@@ -151,9 +180,10 @@ class YOLOLayer(nn.Module):
             weights.append(weight)
             print(match_quality_matrix.shape)
 
-        weights = torch.stack(weights, 0)
+        weights = torch.cat(weights, 0)
         return weights
 
+    @torch.no_grad()
     def get_gt_scale(self):
         gt_boxes = Boxes.cat(self.gt_boxes)
         return 2 - gt_boxes.area()
@@ -197,9 +227,9 @@ class YOLOLayer(nn.Module):
             delta_wh.append(delta_wh_per_image)
             delta_cls.append(delta_cls_per_image)
 
-        delta_xy = torch.stack(delta_xy, 0)
-        delta_wh = torch.stack(delta_wh, 0)
-        delta_cls = torch.stack(delta_cls, 0)
+        delta_xy = torch.stack(delta_xy, 0).view(-1, 2)
+        delta_wh = torch.stack(delta_wh, 0).view(-1, 2)
+        delta_cls = torch.stack(delta_cls, 0).view(-1,self.num_classes)
 
         return  delta_xy, delta_wh, delta_cls
 
@@ -348,7 +378,7 @@ if __name__ == "__main__":
 
     gt_boxes = Boxes(torch.Tensor([[0.1, 0.1, 0.2, 0.2], [0.1, 0.1, 0.3, 0.3]]))
     gt_boxes = [gt_boxes, gt_boxes]
-    gt_cls = torch.Tensor([1, 2])
+    gt_cls = torch.Tensor([[1, 2], [1,2]]).to(torch.long)
 
     yolo_layer = YOLOLayer(0.5, 20, 416, 416, anchor_generator.num_cell_anchors)
     yolo_layer.setTarget(gt_boxes, gt_cls)
